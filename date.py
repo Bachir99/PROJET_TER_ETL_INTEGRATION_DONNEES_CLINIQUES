@@ -4,7 +4,7 @@ import datetime
 
 column_name = sys.argv[1]
 
-today = datetime.datetime.now().strftime('%Y-%m-%d')
+today = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 input_csv = pd.read_csv(sys.stdin)
 

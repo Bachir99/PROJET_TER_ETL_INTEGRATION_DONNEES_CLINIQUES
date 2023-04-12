@@ -8,6 +8,9 @@ column_names = [
     "V-Today-1",
     "V-FormatDate-1",
     "V-NotNull-1",
+    "rejected>today",
+    "rejected_125",
+    "rejected_deathdate>datebirth"
 ]
 
 output_file = "/home/bachir/Bureau/S8/HAI823I TER/resultats/duplicates_file.csv"
