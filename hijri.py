@@ -6,10 +6,10 @@ import re
 def hijri_to_gregorian_converter(value):
     date_value = value.split(' ')[0]  # Get the date part of the value (ignoring the time part)
     hijri_parts = re.split(r'[/-]', date_value)
-    if  len(hijri_parts[2]) == 4 and int(hijri_parts[2]) < 1500:
-        hijri_day = int(hijri_parts[0])
+    if  len(hijri_parts[0]) == 4 and int(hijri_parts[0]) < 1500:
+        hijri_day = int(hijri_parts[2])
         hijri_month = int(hijri_parts[1])
-        hijri_year = int(hijri_parts[2])
+        hijri_year = int(hijri_parts[0])
         gregorian_date = islamic.to_gregorian(hijri_year, hijri_month, hijri_day)
         formatted_gregorian_date = f"{gregorian_date[0]:04d}-{gregorian_date[1]:02d}-{gregorian_date[2]:02d} 00:00:00"
         return formatted_gregorian_date
