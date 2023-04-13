@@ -27,4 +27,3 @@ if __name__ == '__main__':
     for row in csv_reader:
         row[birth_of_date_idx] = hijri_to_gregorian_converter(row[birth_of_date_idx])
         csv_writer.writerow(row)
-

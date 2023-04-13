@@ -9,7 +9,7 @@ import numpy as np
 def v_today1_v_date_of_birth1_v_date_of_death(df):
     today = datetime.now()
     max_dob = today - timedelta(days=125 * 365)
-
+    #TODO : les lignes rejetées on les écrit dans le fichier de rapport
     def check_dates(row):
         dob = pd.to_datetime(row['DateOfBirth'], errors='coerce')
         dod = pd.to_datetime(row['DateofDeath'], errors='coerce')
@@ -60,7 +60,7 @@ def V_length100(df, row, warnings_list):
         if col in ['FathersName', 'FathersPreName', 'PlaceOfBirth']:
             if len(str(row[col])) > 100:
                 row_copy = row.copy()
-                row_copy['Avertissement'] = 'V-length50'
+                row_copy['Avertissement'] = 'V-length100'
                 warnings_list.append(row_copy)
 
 

@@ -25,7 +25,7 @@ for i in range(len(df.index)):
             
             # Assigner la nouvelle valeur de la cellule
             df.iloc[i, j] = new_value
-        
+        #august 03,2019
         elif isinstance(cell_value, str) and re.match(r'^[A-Za-z]+\s\d{1,2},\d{4}$', cell_value):            
             month, day_year = cell_value.split(' ')
             day, year = day_year.split(',')
