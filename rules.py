@@ -76,6 +76,12 @@ def D_patientDeceased(row,column_name):
     return row['PatientDeceased']
 
 
+def T_RemoveLeadingZero_1(row, column_name):
+    value = row[column_name]
+    if isinstance(value, str) and value.startswith('0'):
+        row[column_name] = value.lstrip('0')
+    return row[column_name]
+
 def V_NotNull1(row,column_name, reject_list):
     if pd.isna(row[column_name]) or row[column_name] == '':
         row_copy = row.copy()
@@ -83,6 +89,12 @@ def V_NotNull1(row,column_name, reject_list):
         reject_list.append(row_copy)
         return False
     return True
+
+def V_NotNull2(row,column_name, warnings_list):
+    if pd.isna(row[column_name]) or row[column_name] == '':
+        row_copy = row.copy()
+        row_copy['Avertissement'] = 'V-NotNull-2'
+        warnings_list.append(row_copy)
 
 def V_length50(row, column_name, warnings_list):
     if len(str(row[column_name])) > 50:
@@ -97,12 +109,25 @@ def V_length100(row, column_name, warnings_list):
         row_copy['Avertissement'] = 'V-length100'
         warnings_list.append(row_copy)
 
+def V_alpha1(row, column_name,reject_list):
+    if not str(row[column_name]).isalpha():
+        row_copy = row.copy()
+        row_copy['Rejet'] = 'V_alpha1'
+        reject_list.append(row_copy)
+        return False
+    return True
+
 def V_alpha2(row, column_name,warnings_list):
     if not str(row[column_name]).isalpha():
         row_copy = row.copy()
         row_copy['Avertissement'] = 'V_alpha2'
         warnings_list.append(row_copy)
 
+def D_Null_1(row, column_name):
+    value = row[column_name]
+    if value == '':
+        row[column_name] = 'Null'
+    return row[column_name]
 
 def enlever_all_null_colonnes(df):
     for col in df.columns:
@@ -123,9 +148,13 @@ def main():
         "V_dateOfDeath": V_dateOfDeath,
         "D_patientDeceased": D_patientDeceased,
         "V_NotNull1": V_NotNull1,
+        "V_NotNull2": V_NotNull2,
         "V_length50": V_length50,
         "V_length100": V_length100,
+        "V_alpha1": V_alpha1,
         "V_alpha2": V_alpha2,
+        "T_RemoveLeadingZero_1": T_RemoveLeadingZero_1,
+        "D_Null_1": D_Null_1
     }
 
     for column, functions in rules.items():
@@ -134,9 +163,11 @@ def main():
                 function = validation_functions[function_name]
                 if function_name == "D_patientDeceased":
                     df['PatientDeceased'] = df.apply(lambda row: function(row, column), axis=1)
-                elif function_name in ["V_length50", "V_length100", "V_alpha2"]:
+                elif function_name in ["T_RemoveLeadingZero_1","D_Null_1"]:
+                    df[column] = df.apply(lambda row: function(row, column), axis=1)
+                elif function_name in ["V_length50", "V_length100", "V_alpha2","V_NotNull2"]:
                     df.apply(lambda row: function(row, column, warnings_list), axis=1)
-                elif function_name == "V_NotNull1" :
+                elif function_name in ["V_NotNull1","V_alpha1"] :
                     df = df[df.apply(lambda row: function(row, column,reject_list), axis=1)]
                 else:
                     df = function(df, column,reject_list)
