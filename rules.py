@@ -1,18 +1,11 @@
 from operator import truediv
 import sys
-import os
 import pandas as pd
-import re
 import datetime
 from datetime import datetime, timedelta
 import numpy as np
 import json
-import openpyxl
-from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.utils import get_column_letter,range_boundaries
-from openpyxl.styles import Border, Side, PatternFill, Font, Alignment
-from openpyxl.worksheet.dimensions import ColumnDimension
-
+from excel import create_excel
 
 def get_rules_from_nifi_properties(file_path):
     with open(file_path, 'r') as file:
@@ -154,8 +147,8 @@ def enlever_all_null_colonnes(df):
             df.drop(col, axis=1, inplace=True)
 
 
-def deduplicate(input_csv,summary_df):
-   
+def deduplicate(input_csv,summary_df,rejections_count):
+    rule_name = 'Deduplication'
     # Replace 'PatientNumber' with the name of the column you want to use for deduplication
     deduplicated_df = input_csv.drop_duplicates(subset='PatientNumber', keep='first')
 
@@ -169,268 +162,11 @@ def deduplicate(input_csv,summary_df):
 
     # Compter le nombre de lignes dupliquées
     nb_lignes_dupliquees = len(input_csv) - len(deduplicated_df)
-
+    rejections_count[rule_name] = nb_lignes_dupliquees
     summary_df = summary_df.append({'Rule': 'Duplication', 'Rejected': nb_lignes_dupliquees, 'Warned': 0}, ignore_index=True)
 
     return deduplicated_df,summary_df,duplicates_df
 
-def create_excel(lines_df,initial_row_count,warnings_count,rejections_count):
-    # Calculate total warnings
-    total_warnings = sum(warnings_count.values())
-
-    # Calculate total rejections
-    total_rejections = sum(rejections_count.values())
-    # Créer un nouveau classeur Excel
-    wb = openpyxl.Workbook()
-
-    worksheet = wb.active
-    worksheet.title = 'Summary'
-    # Merge cells D2:E3 and set the fill color to blue
-    cell_range = 'D2:E3'
-    worksheet.merge_cells(cell_range)
-
-    fill = PatternFill(start_color='BDD7EE', end_color='BDD7EE', fill_type='solid')
-    for row in worksheet[cell_range]:
-        for cell in row:
-            cell.fill = fill
-
-    # Write the text "Validation report" in black font
-    cell = worksheet.cell(row=2, column=4)
-    cell.value = "Validation report"
-    cell.font = Font(color='000000', bold=True)
-
-    # Center the text horizontally and vertically
-    cell.alignment = Alignment(horizontal='center', vertical='center')
-
-    # Créer une feuille de calcul pour les avertissements
-    ws_warnings = wb.create_sheet('Details')
-
-    # Écrire le DataFrame des avertissements dans la feuille de calcul
-    for r in dataframe_to_rows(lines_df, index=False, header=True):
-        ws_warnings.append(r)
-
-
-    # Définir le tableau
-    table = [
-        ['Cluster:', 'CIUM'],
-        ['Hopital:', 'Hopital1'],
-        ['Servicing department', 'Patient']
-    ]
-
-    # Écrire les valeurs dans les cellules appropriées
-    for row in range(4, 7):
-        for col in range(2, 4):
-            cell = worksheet.cell(row=row, column=col)
-            cell.value = table[row-4][col-2]
-
-    # Fusionner les cellules B4:C4, B5:C5, B6:C6
-    for row in range(4, 7):
-        start_col, start_row, end_col, end_row = range_boundaries(f'B{row}:C{row}')
-        worksheet.merge_cells(start_row=start_row, start_column=start_col, end_row=end_row, end_column=end_col)
-
-    # Mettre le texte en gras pour les titres
-    title_font = Font(bold=True)
-
-    for row in range(4, 7):
-        cell = worksheet.cell(row=row, column=2)
-        cell.font = title_font
-
-    # Définir le remplissage pour le fond en vert kaki
-    fill = PatternFill(start_color='C2D69B', end_color='C2D69B', fill_type='solid')
-
-    # Appliquer le remplissage et les bordures noires aux cellules B4:C6
-    for row in range(4, 7):
-        for col in range(2, 4):
-            cell = worksheet.cell(row=row, column=col)
-            cell.fill = fill
-            cell.border = Border(left=Side(border_style='thin', color='000000'),
-                                right=Side(border_style='thin', color='000000'),
-                                top=Side(border_style='thin', color='000000'),
-                                bottom=Side(border_style='thin', color='000000'))
-
-    # Centrer le texte dans les cellules
-    alignment = Alignment(horizontal='center', vertical='center')
-
-    for row in range(4, 7):
-        for col in range(2, 4):
-            cell = worksheet.cell(row=row, column=col)
-            cell.alignment = alignment
-
-    # Write "Production date" in bold font in cell D7
-    cell = worksheet['D7']
-    cell.value = 'Production date'
-    cell.font = Font(bold=True)
-
-    # Write today's date in cells F7 to H7
-    cell = worksheet['F7']
-    cell.value = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-
-    # Appliquer  les bordures noires aux cellules B4:C6
-    for col in range(4, 8):
-        cell = worksheet.cell(row=7, column=col)
-        if col == 5 or col == 7:
-            cell.border = Border(
-                            right=Side(border_style='thin', color='000000'),
-                            top=Side(border_style='thin', color='000000'),
-                            bottom=Side(border_style='thin', color='000000'))
-        
-        elif col == 4 :
-            cell.border = Border(left=Side(border_style='thin', color='000000'),
-                            top=Side(border_style='thin', color='000000'),
-                            bottom=Side(border_style='thin', color='000000'))
-        else :
-            cell.border = Border(
-                            top=Side(border_style='thin', color='000000'),
-                            bottom=Side(border_style='thin', color='000000'))
-
-
-
-
-    # Écrire les valeurs dans les cellules appropriées
-    table = [
-        'Total number of initial records:',
-        'Number of rejected records:',
-        'Number of averted records:'
-    ]
-
-    for row in range(14, 17):
-            cell = worksheet.cell(row=row, column=2)
-            cell.value = table[row-14]
-
-    # Appliquer  les bordures noires aux cellules B4:C6
-    for row in range(14, 17):
-        for col in range(2,6):
-            cell = worksheet.cell(row=row, column=col)
-            if col == 3 or col == 4:
-                cell.border = Border(
-                                top=Side(border_style='thin', color='000000'),
-                                bottom=Side(border_style='thin', color='000000'))
-            
-            elif col == 2 :
-                cell.border = Border(left=Side(border_style='thin', color='000000'),
-                                top=Side(border_style='thin', color='000000'),
-                                bottom=Side(border_style='thin', color='000000'))
-            else :
-                cell.border = Border(
-                                right=Side(border_style='thin', color='000000'),
-                                top=Side(border_style='thin', color='000000'),
-                                bottom=Side(border_style='thin', color='000000'))
-
-
-    # Définir les cellules à fusionner
-    merge_ranges = ['B14:E14', 'B15:E15', 'B16:E16']
-
-    # Fusionner les cellules
-    for cell_range in merge_ranges:
-        worksheet.merge_cells(cell_range)
-
-    # Écrire les valeurs dans les cellules appropriées
-    table = [
-        'Records',
-        '%']
-
-    for col in range(6,8):
-        cell = worksheet.cell(row=13, column=col)
-        cell.value = table[col-6]
-        font = Font(color='0070C0', bold=True)
-        cell.font = font
-        fill = PatternFill(start_color='BDD7EE', end_color='BDD7EE', fill_type='solid')
-        cell.fill = fill
-        cell.alignment = alignment
-        # Appliquer  les bordures noires aux cellules B4:C6
-    for row in range(13, 17):
-        for col in range(6,8):
-            cell = worksheet.cell(row=row, column=col)
-            cell.border = Border(
-                                left=Side(border_style='thin', color='000000'),
-                                right=Side(border_style='thin', color='000000'),
-                                top=Side(border_style='thin', color='000000'),
-                                bottom=Side(border_style='thin', color='000000'))
-            
-    cell = worksheet.cell(row=14, column=6)
-    cell.value = initial_row_count
-    cell.alignment = alignment
-    cell = worksheet.cell(row=15, column=6)
-    cell.value = total_rejections
-    cell.alignment = alignment
-    cell = worksheet.cell(row=16, column=6)
-    cell.value = total_warnings
-    cell.alignment = alignment    
-    cell = worksheet.cell(row=14, column=7)
-    cell.value = '100%'
-    cell.alignment = alignment    
-    warning_percentage = (total_warnings / initial_row_count) * 100
-    rejection_percentage = (total_rejections / initial_row_count) * 100
-    cell = worksheet.cell(row=15, column=7)
-    cell.value = str(rejection_percentage)+'%'
-    cell.alignment = alignment
-    cell = worksheet.cell(row=16, column=7)
-    cell.value = str(warning_percentage)+'%'
-    cell.alignment = alignment
-
-    table = [
-        "PPM load field name",
-        "Validation Type",
-        "Rule ID",
-        "Validation rule",
-        "Number",
-        "%"
-    ]
-
-    for col, value in enumerate(table, start=2):
-        cell = worksheet.cell(row=19, column=col)
-        cell.value = value
-        font = Font(color='0070C0', bold=True)
-        cell.font = font
-        fill = PatternFill(start_color='BDD7EE', end_color='BDD7EE', fill_type='solid')
-        cell.fill = fill
-        cell.alignment = alignment
-
-    
-    row = 20
-
-    # Parcourir le dictionnaire warnings_count
-    for key, value in warnings_count.items():
-        if value != 0:
-            worksheet.cell(row=row, column=3).value = 'Rejection'
-            worksheet.cell(row=row, column=4).value = key
-            worksheet.cell(row=row, column=6).value = value
-            row += 1
-            for col in range(2,8):
-                cell = worksheet.cell(row=row-1, column=col)            
-                cell.border = Border(
-                                left=Side(border_style='thin', color='000000'),
-                                right=Side(border_style='thin', color='000000'),
-                                top=Side(border_style='thin', color='000000'),
-                                bottom=Side(border_style='thin', color='000000'))
-    # Parcourir le dictionnaire rejections_count
-    for key, value in rejections_count.items():
-        if value != 0:
-            worksheet.cell(row=row, column=3).value = 'Warning'
-            worksheet.cell(row=row, column=4).value = key
-            worksheet.cell(row=row, column=6).value = value
-            row += 1
-            for col in range(2,8):
-                cell = worksheet.cell(row=row-1, column=col)            
-                cell.border = Border(
-                                left=Side(border_style='thin', color='000000'),
-                                right=Side(border_style='thin', color='000000'),
-                                top=Side(border_style='thin', color='000000'),
-                                bottom=Side(border_style='thin', color='000000'))
-
-    worksheet.column_dimensions['A'].width = 20
-    worksheet.column_dimensions['B'].width = 20
-    worksheet.column_dimensions['C'].width = 20
-    worksheet.column_dimensions['D'].width = 20
-    worksheet.column_dimensions['E'].width = 20
-    worksheet.column_dimensions['F'].width = 20
-    worksheet.column_dimensions['G'].width = 20
-    worksheet.column_dimensions['H'].width = 20
-    worksheet.column_dimensions['I'].width = 20
-    worksheet.column_dimensions['J'].width = 20
-
-    wb.save('/home/bachir/Bureau/S8/HAI823I TER/resultats/ValidationReport.xlsx')
 
 
 def main():
@@ -443,12 +179,7 @@ def main():
     
     summary_df = pd.DataFrame(columns=['Rule', 'Rejected', 'Warned','Initial'])
     summary_df = summary_df.append({'Rule': 'Nbr de lignes initial','Initial' : initial_row_count}, ignore_index=True)
-
-    df, summary_df, duplicates_df = deduplicate(df,summary_df)
     
-    warnings_list = []
-    reject_list = []
-
     warnings_count = {"V-length50":0,
                       "V-length100":0,
                       "V-alpha-2":0,
@@ -458,7 +189,14 @@ def main():
                         "V-Today-1":0,
                         "V-DateOfBirth-1":0,
                         "V-DateofDeath":0,
+                        "Deduplication":0
                         }
+    df, summary_df, duplicates_df = deduplicate(df,summary_df,rejections_count)
+    
+    warnings_list = []
+    reject_list = []
+
+
 
 
     validation_functions = {
