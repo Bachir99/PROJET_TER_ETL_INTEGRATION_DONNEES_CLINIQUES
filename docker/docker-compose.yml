@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  nifi:
+    build: ./
+    image: apache/nifi:latest
+    ports:
+      - 8443:8443
+      - 5003:5003 
+    environment:
+      - SINGLE_USER_CREDENTIALS_USERNAME=83bce041-86a1-4a62-a96e-777270d79562
+      - SINGLE_USER_CREDENTIALS_PASSWORD=zY9loK9JSMAVxtuH4mDwFN3vfNTBtcns
+    volumes:
+      - ./nifi_data:/opt/nifi/nifi-current/data
+      - /home/bachir/Bureau/S8/HAI823I TER/scripts:/opt/nifi/nifi-current/scripts
