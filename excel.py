@@ -9,6 +9,9 @@ from openpyxl.utils import get_column_letter, range_boundaries
 from openpyxl.styles import Border, Side, PatternFill, Font, Alignment
 from openpyxl.worksheet.dimensions import ColumnDimension
 from openpyxl.chart import BarChart, Reference
+import io 
+import sys
+
 def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
 
     rules_and_significations = {
@@ -284,42 +287,30 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
 
 
 
-    # Récupérer les données
-    data = []
-    labels = []
-    for row in worksheet.iter_rows(min_row=14, max_row=14, min_col=6, max_col=6):
-        for cell in row:
-            data.append(cell.value)
-    for row in worksheet.iter_rows(min_row=14, max_row=14, min_col=2, max_col=2):
-        for cell in row:
-            labels.append(cell.value)
-            
 
-    # Récupérer les données
-    data = []
-    labels = []
-    for row in worksheet.iter_rows(min_row=20, max_row=20, min_col=6, max_col=6):
-        for cell in row:
-            data.append(cell.value)
-    for row in worksheet.iter_rows(min_row=20, max_row=20, min_col=4, max_col=4):
-        for cell in row:
-            labels.append(str(cell.value))
+    start_row = 20  # Ligne de départ
+    end_row = worksheet.max_row
 
-    # Créer le graphique
     chart = BarChart()
     chart.type = "col"
     chart.style = 10
-    chart.title = "Distribution du nbr de lignes rejetées/averties"
+    chart.title = "Distribution du nombre de lignes rejetées/averties"
     chart.y_axis.title = "Nombre de lignes rejetées/averties"
     chart.x_axis.title = "Règles"
 
-    data_ref = Reference(worksheet, min_col=6, min_row=20, max_row=20)
-    labels_ref = Reference(worksheet, min_col=4, min_row=20, max_row=20)
+    for row_number in range(start_row, end_row + 1):
+        # Ajouter une série de données pour chaque ligne
+        data_ref = Reference(worksheet, min_col=6, min_row=row_number, max_row=row_number)
+        # Add data without using titles from data
+        chart.add_data(data_ref, titles_from_data=False)
 
-    chart.add_data(data_ref, titles_from_data=True)
-    chart.set_categories(labels_ref)
+
     # Ajouter le graphique à la feuille de calcul
-    worksheet.add_chart(chart, "H19")
+    chart_location = "H19"  # Emplacement du graphique sur la feuille de calcul
+    worksheet.add_chart(chart, chart_location)
+
+
+
 
     worksheet.column_dimensions['A'].width = 20
     worksheet.column_dimensions['B'].width = 20
@@ -332,4 +323,4 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     worksheet.column_dimensions['I'].width = 20
     worksheet.column_dimensions['J'].width = 20
 
-    wb.save('/home/bachir/Bureau/S8/HAI823I TER/resultats/ValidationReport.xlsx')
+    wb.save('/home/bachir/Bureau/S8/HAI823I TER/scripts/ValidationReport.xlsx')
