@@ -214,10 +214,10 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     warning_percentage = (total_warnings / initial_row_count) * 100
     rejection_percentage = (total_rejections / initial_row_count) * 100
     cell = worksheet.cell(row=15, column=7)
-    cell.value = str(int(rejection_percentage))+'%'
+    cell.value = str(rejection_percentage)+'%'
     cell.alignment = alignment
     cell = worksheet.cell(row=16, column=7)
-    cell.value = str(int(warning_percentage))+'%'
+    cell.value = str(warning_percentage)+'%'
     cell.alignment = alignment
 
     table = [
