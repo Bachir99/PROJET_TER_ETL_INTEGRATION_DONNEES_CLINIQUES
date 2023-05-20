@@ -147,7 +147,7 @@ def enlever_all_null_colonnes(df):
             df.drop(col, axis=1, inplace=True)
 
 
-def deduplicate(input_csv,summary_df,rejections_count):
+def deduplicate(input_csv,rejections_count):
     rule_name = 'Deduplication'
     # Replace 'PatientNumber' with the name of the column you want to use for deduplication
     deduplicated_df = input_csv.drop_duplicates(subset='PatientNumber', keep='first')
@@ -163,22 +163,19 @@ def deduplicate(input_csv,summary_df,rejections_count):
     # Compter le nombre de lignes dupliquées
     nb_lignes_dupliquees = len(input_csv) - len(deduplicated_df)
     rejections_count[rule_name] = nb_lignes_dupliquees
-    summary_df = summary_df.append({'Rule': 'Duplication', 'Rejected': nb_lignes_dupliquees, 'Warned': 0}, ignore_index=True)
 
-    return deduplicated_df,summary_df,duplicates_df
+    return deduplicated_df,duplicates_df
 
 
 
 def main():
 
-    nifi_properties_path = "/home/bachir/Téléchargements/nifi-1.20.0-bin/nifi-1.20.0/conf/nifi.properties"
+    nifi_properties_path = "/opt/nifi/nifi-current/scripts/nifi.properties"
     rules={}
     rules = get_rules_from_nifi_properties(nifi_properties_path)
     df = pd.read_csv(sys.stdin)
     initial_row_count = len(df)
     
-    summary_df = pd.DataFrame(columns=['Rule', 'Rejected', 'Warned','Initial'])
-    summary_df = summary_df.append({'Rule': 'Nbr de lignes initial','Initial' : initial_row_count}, ignore_index=True)
     
     warnings_count = {"V-length50":0,
                       "V-length100":0,
@@ -191,7 +188,7 @@ def main():
                         "V-DateofDeath":0,
                         "Deduplication":0
                         }
-    df, summary_df, duplicates_df = deduplicate(df,summary_df,rejections_count)
+    df, duplicates_df = deduplicate(df,rejections_count)
     
     warnings_list = []
     reject_list = []
@@ -234,24 +231,15 @@ def main():
     df['FileDateCreation'].iloc[0:1] = file_date_creation
 
 
-    for rule, count in rejections_count.items():
-        summary_df = summary_df.append({'Rule': rule, 'Rejected': count, 'Warned': 0}, ignore_index=True)
 
-    for rule, count in warnings_count.items():
-        if rule in summary_df['Rule'].values:
-            summary_df.loc[summary_df['Rule'] == rule, 'Warned'] = count
-        else:
-            summary_df = summary_df.append({'Rule': rule, 'Rejected': 0, 'Warned': count}, ignore_index=True)
-
-    summary_df.to_csv('/home/bachir/Bureau/S8/HAI823I TER/resultats/report_rules.csv', index=False)
 
     # Ajouter les lignes avec des avertissements et des rejets au dataframe lines_df pour pouvoir les écrire dans le validation report après
     lines_df = pd.DataFrame()
     warnings_df = pd.DataFrame(warnings_list)
     rejections_df = pd.DataFrame(reject_list)
-    lines_df = lines_df.append(duplicates_df,ignore_index=True)
-    lines_df = lines_df.append(warnings_df, ignore_index=True)
-    lines_df = lines_df.append(rejections_df, ignore_index=True)
+    lines_df = pd.concat([lines_df, duplicates_df], ignore_index=True)
+    lines_df = pd.concat([lines_df, warnings_df], ignore_index=True)
+    lines_df = pd.concat([lines_df, rejections_df], ignore_index=True)
 
 
     create_excel(lines_df,initial_row_count,warnings_count,rejections_count)

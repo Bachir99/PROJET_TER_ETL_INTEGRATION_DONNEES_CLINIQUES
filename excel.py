@@ -24,13 +24,15 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
         "V-length100": "Lenght =<100",
         "V-alpha-1": "Alpha Characters only",
         "V-alpha-2": "Alpha Characters only",
+        "Deduplication" : "Deduplicated lines based on a unique value per line, or the whole line duplicated"
     }
 
     # Calculate total warnings
-    total_warnings = sum(warnings_count.values())
+    total_warnings = sum(sum(d.values()) for d in warnings_count.values())
 
     # Calculate total rejections
-    total_rejections = sum(rejections_count.values())
+    total_rejections = sum(sum(d.values()) for d in rejections_count.values())
+
     # Créer un nouveau classeur Excel
     wb = openpyxl.Workbook()
 
@@ -221,7 +223,7 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     cell.alignment = alignment
 
     table = [
-        "PPM load field name",
+        "Field name",
         "Validation Type",
         "Rule ID",
         "Validation rule",
@@ -243,45 +245,48 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
 
     # Parcourir le dictionnaire warnings_count
     for key, value in warnings_count.items():
-        if value != 0:
-            worksheet.cell(row=row, column=3).value = 'Warning'
-            worksheet.cell(row=row, column=4).value = key
-            worksheet.cell(
-                row=row, column=5).value = rules_and_significations[key]
-            worksheet.cell(row=row, column=6).value = value
-            worksheet.cell(row=row, column=6).alignment = alignment
-            worksheet.cell(row=row, column=7).value = str(
-                int((value / initial_row_count) * 100))+'%'
-            worksheet.cell(row=row, column=7).alignment = alignment
-            row += 1
-            for col in range(2, 8):
-                cell = worksheet.cell(row=row-1, column=col)
-                cell.border = Border(
-                    left=Side(border_style='thin', color='000000'),
-                    right=Side(border_style='thin', color='000000'),
-                    top=Side(border_style='thin', color='000000'),
-                    bottom=Side(border_style='thin', color='000000'))
-    # Parcourir le dictionnaire rejections_count
-    for key, value in rejections_count.items():
-        if value != 0:
-            worksheet.cell(row=row, column=3).value = 'Rejection'
-            worksheet.cell(row=row, column=4).value = key
-            if key != 'Deduplication':
+        for keyy, valuee in value.items():
+            if valuee != 0:
+                worksheet.cell(row=row, column=2).value = keyy
+                worksheet.cell(row=row, column=3).value = 'Warning'
+                worksheet.cell(row=row, column=4).value = key
                 worksheet.cell(
                     row=row, column=5).value = rules_and_significations[key]
-            worksheet.cell(row=row, column=6).value = value
-            worksheet.cell(row=row, column=6).alignment = alignment
-            worksheet.cell(row=row, column=7).value = str(
-                int((value / initial_row_count) * 100))+'%'
-            worksheet.cell(row=row, column=7).alignment = alignment
-            row += 1
-            for col in range(2, 8):
-                cell = worksheet.cell(row=row-1, column=col)
-                cell.border = Border(
-                    left=Side(border_style='thin', color='000000'),
-                    right=Side(border_style='thin', color='000000'),
-                    top=Side(border_style='thin', color='000000'),
-                    bottom=Side(border_style='thin', color='000000'))
+                worksheet.cell(row=row, column=6).value = valuee
+                worksheet.cell(row=row, column=6).alignment = alignment
+                worksheet.cell(row=row, column=7).value = str(
+                    int((valuee / initial_row_count) * 100))+'%'
+                worksheet.cell(row=row, column=7).alignment = alignment
+                row += 1
+                for col in range(2, 8):
+                    cell = worksheet.cell(row=row-1, column=col)
+                    cell.border = Border(
+                        left=Side(border_style='thin', color='000000'),
+                        right=Side(border_style='thin', color='000000'),
+                        top=Side(border_style='thin', color='000000'),
+                        bottom=Side(border_style='thin', color='000000'))
+    # Parcourir le dictionnaire rejections_count
+    for key, value in rejections_count.items():
+        for keyy, valuee in value.items():
+            if valuee != 0:
+                worksheet.cell(row=row, column=2).value = keyy
+                worksheet.cell(row=row, column=3).value = 'Rejection'
+                worksheet.cell(row=row, column=4).value = key
+                worksheet.cell(
+                    row=row, column=5).value = rules_and_significations[key]
+                worksheet.cell(row=row, column=6).value = valuee
+                worksheet.cell(row=row, column=6).alignment = alignment
+                worksheet.cell(row=row, column=7).value = str(
+                    int((valuee / initial_row_count) * 100))+'%'
+                worksheet.cell(row=row, column=7).alignment = alignment
+                row += 1
+                for col in range(2, 8):
+                    cell = worksheet.cell(row=row-1, column=col)
+                    cell.border = Border(
+                        left=Side(border_style='thin', color='000000'),
+                        right=Side(border_style='thin', color='000000'),
+                        top=Side(border_style='thin', color='000000'),
+                        bottom=Side(border_style='thin', color='000000'))
 
 
 
@@ -323,4 +328,4 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     worksheet.column_dimensions['I'].width = 20
     worksheet.column_dimensions['J'].width = 20
 
-    wb.save('/home/bachir/Bureau/S8/HAI823I TER/scripts/ValidationReport.xlsx')
+    wb.save('/opt/nifi/nifi-current/scripts/results/ValidationReport.xlsx')

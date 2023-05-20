@@ -23,52 +23,151 @@ def mapping(df, choix, column_mapping, nom_fichier, type_fichier, rejections_cou
     
     else :
         
+        dict_patient = {
+            'PatientNumber':'MRN Number',		
+            'DateOfBirth':'DateOfBirth',
+            'Gender':'Gender',
+            'Extra:PatientDeceased' : 'PatientDeceased',
+            'Extra:DateofDeath' : 'DateofDeath',
+            'Extra:PlaceOfBirth' : 'PlaceOfBirth',	
+            'EthnicOrigin' : 'EthnicOrigin',
+            'Nationality' : 'Extra:Nationality',
+            'LastName' : 'LastName',
+            'FirstName' : 'FirstName',
+            'Title' : 'Title',
+            'Extra:MothersLastName' : 'MothersName',
+            'Extra:MothersFirstName' : 'MothersPreName',	
+            'Extra:FathersLastName' : 'FathersName',	
+            'Extra:FathersFirstName' : 'FathersPreName',
+            'Extra:FamilyDoctor' : 'FamilyDoctor',	
+            'Extra:BloodRefusal' : 'BloodRefusal',	
+            'Extra:OrganDonor' : 'OrganDonor',	
+            'Extra:PrefLanguage' : 'PrefLanguage',	
+            'Extra:LastUpdateDateTime' : 'LastUpdateDateTime',
+            'NationalIdentifier' : 'NationalID'
+            }
+
+        
         # Lecture du fichier CSV à partir de l'entrée standard (stdin)
-        df = pd.read_csv(sys.stdin, delimiter=',')
+        #df = pd.read_csv(sys.stdin, delimiter=',')
 
         # Réorganiser les colonnes du DataFrame en suivant l'ordre défini dans le dictionnaire
-        df = df[column_mapping.keys()]
+        df = df[column_mapping.values()]
         
-        if choix == 1 :
+        if choix == 1 : #Un fichier Patient
             # Itération sur chaque colonne du dataframe
             for new_names, original_name in column_mapping.items():
                 # Vérifier si la clé (le nom de colonne) est présente dans le dictionnaire
                 if original_name in df.columns:
-                    # Si la correspondance est à l'aide d'une regex
-                    if isinstance(new_names, dict):
-                        # Itération sur chaque correspondance de nom de colonne
-                        for new_name, regex in new_names.items():
-                            # Extraction de la partie correspondante de la colonne originale avec la regex
-                            df[new_name] = df[original_name].str.extract(regex)
-                    # Sinon, la correspondance est simple
-                    else:
-                        # Renommage de la colonne
-                        df.rename(columns={original_name: new_names}, inplace=True)
-
-            # Suppression des colonnes d'origine qui ont été découpées
-            df.drop(columns=[name for name in column_mapping.keys() if isinstance(column_mapping[name], dict)], inplace=True)
-
+                    # Renommage de la colonne
+                    df.rename(columns={original_name: new_names}, inplace=True)
             
             # Recherche du nom de l'hôpital dans le nom du fichier
-            hopital_name = re.search('Hop(.*)\.csv', nom_fichier)
+            hopital_name = re.search('(Hop.*)\.csv', nom_fichier)
             
             # Création de la colonne "Hospital" avec le nom de l'hôpital
             df.insert(1, 'Hospital', hopital_name.group(1))
 
             # Écriture du fichier CSV résultant sur la sortie standard (stdout)
             df.to_csv(sys.stdout, sep=',', index=False)
-        #elif choix == 2 :
-            #
-        #elif choix == 3 : 
-            #llfl
-        #elif choix == 4 : 
-        #    column_mapping == dict_diagnosis
-        #elif choix == 5 :
-        #    column_mapping = dict_procedure
-        #elif choix == 6 :
-        #    column_mapping == dict_service
+        
+        elif choix == 2 : #Un fichier Encounter
+            # Itération sur chaque colonne du dataframe
+            for new_names, original_name in column_mapping.items():
+                # Vérifier si la clé (le nom de colonne) est présente dans le dictionnaire
+                if original_name in df.columns:
+                    # Renommage de la colonne
+                    df.rename(columns={original_name: new_names}, inplace=True)
+            
+            # Recherche du nom de l'hôpital dans le nom du fichier
+            encounterType = re.search('OP|IP|ED', nom_fichier)
+            
+            # Création de la colonne "Hospital" avec le nom de l'hôpital
+            df.insert(1, 'EncounterType', encounterType)
 
+            # Écriture du fichier CSV résultant sur la sortie standard (stdout)
+            df.to_csv(sys.stdout, sep=',', index=False)            
+                
+        elif choix == 3 : #un fichier TRANSFER
+            
+            # Itération sur chaque colonne du dataframe
+            for new_names, original_name in column_mapping.items():
+                # Vérifier si la clé (le nom de colonne) est présente dans le dictionnaire
+                if original_name in df.columns:
+                    # Renommage de la colonne
+                    df.rename(columns={original_name: new_names}, inplace=True)
+            
+            # Recherche du nom de l'hôpital dans le nom du fichier
+            hopital_name = re.search('(Hop.*)\.csv', nom_fichier)
+            
+            # Création de la colonne "Hospital" avec le nom de l'hôpital
+            df.insert(1, 'Hospital', hopital_name.group(1))
 
+            #TODO : BedNumber et RoomNumber c'est des colonnes qu'on doit en déduire
+            
+            
+            # Écriture du fichier CSV résultant sur la sortie standard (stdout)
+            df.to_csv(sys.stdout, sep=',', index=False)            
+        
+        elif choix == 4 : #un fichier DIAGNOSIS
+            
+            # Itération sur chaque colonne du dataframe
+            for new_names, original_name in column_mapping.items():
+                # Vérifier si la clé (le nom de colonne) est présente dans le dictionnaire
+                if original_name in df.columns:
+                    # Renommage de la colonne
+                    df.rename(columns={original_name: new_names}, inplace=True)
+            
+            # Recherche du nom de l'hôpital dans le nom du fichier
+            hopital_name = re.search('(Hop.*)\.csv', nom_fichier)
+            
+            # Création de la colonne "Hospital" avec le nom de l'hôpital
+            df.insert(1, 'Hospital', hopital_name.group(1))            
+            
+            # Écriture du fichier CSV résultant sur la sortie standard (stdout)
+            df.to_csv(sys.stdout, sep=',', index=False)          
+        elif choix == 5 : #Un fichier procédure
+            
+            # Itération sur chaque colonne du dataframe
+            for new_names, original_name in column_mapping.items():
+                # Vérifier si la clé (le nom de colonne) est présente dans le dictionnaire
+                if original_name in df.columns:
+                    # Renommage de la colonne
+                    df.rename(columns={original_name: new_names}, inplace=True)
+            
+            # Recherche du nom de l'hôpital dans le nom du fichier
+            hopital_name = re.search('(Hop.*)\.csv', nom_fichier)
+            
+            # Création de la colonne "Hospital" avec le nom de l'hôpital
+            df.insert(1, 'Hospital', hopital_name.group(1))            
+            
+            # Écriture du fichier CSV résultant sur la sortie standard (stdout)
+            df.to_csv(sys.stdout, sep=',', index=False) 
+
+        elif choix == 6 :
+            
+            # Itération sur chaque colonne du dataframe
+            for new_names, original_name in column_mapping.items():
+                # Vérifier si la clé (le nom de colonne) est présente dans le dictionnaire
+                if original_name in df.columns:
+                    # Renommage de la colonne
+                    df.rename(columns={original_name: new_names}, inplace=True)
+            
+            # Recherche du nom de l'hôpital dans le nom du fichier
+            hopital_name = re.search('(Hop.*)\.csv', nom_fichier)
+            
+            # Création de la colonne "Hospital" avec le nom de l'hôpital
+            df.insert(1, 'Hospital', hopital_name.group(1))            
+            
+            servicingDepartment = re.search('Imaging|Laboratory|Theater|Pharmacy|Nutrition', nom_fichier)
+            
+            # Création de la colonne "Hospital" avec le nom de l'hôpital
+            df.insert(7, 'ServicingDepartment', servicingDepartment)               
+            
+            # Écriture du fichier CSV résultant sur la sortie standard (stdout)
+            df.to_csv(sys.stdout, sep=',', index=False) 
+            
+            
 
 
 dict_patient = {
@@ -102,7 +201,7 @@ dict_encounter = {
 'EndDateTime': 'EndDateTime',
 'EncounterNumber': 'EncounterNumber',
 'Age': 'Age',
-'EnounterType': 'EnounterType',
+#'EncounterType': 'EncounterType',
 'EncounterCategory': 'EncounterCategory',
 'LengthOfStay': 'LengthOfStay',
 'AdmitWard': 'AdmitWard',
@@ -301,7 +400,7 @@ dict_service = {
 'Extra:PlannedSurgeryDate': 'PlannedSurgeryDate',
 'Extra:OperationID': 'OperationID',
 'Extra:OperationStatus': 'OperationStatus',
-#'': 'EncounterType',
+#'EncounterType': 'EncounterType',
 'Extra:PACUDuration': 'PACUDuration',
 'Extra:Implants': 'Implants',
 'Extra:Site': 'Site',
@@ -315,12 +414,12 @@ dict_service = {
 df = pd.read_csv(sys.stdin)
 rejections_count = {"Absence MandatoryField":len(df)}
 
-file_name_path = "/opt/nifi/nifi-current/scripts/file_name.txt"
+file_name_path = "./file_name.txt"
 # Récupération du nom du fichier d'entrée
 file_name = recuperate(file_name_path)
 
 
-file_type_path = "/opt/nifi/nifi-current/scripts/file_type.txt"
+file_type_path = "./file_type.txt"
 # Récupération du nom du fichier d'entrée
 file_type = recuperate(file_type_path)
 
@@ -383,3 +482,15 @@ dict_patient[''] = 'FamilyDoctor'
 dict_patient['NATIONALID'] = 'NationalID'
 dict_patient[''] = 'FileDateCreation'
 """
+
+"""                    # Si la correspondance est à l'aide d'une regex
+                    if isinstance(new_names, dict):
+                        # Itération sur chaque correspondance de nom de colonne
+                        for new_name, regex in new_names.items():
+                            # Extraction de la partie correspondante de la colonne originale avec la regex
+                            df[new_name] = df[original_name].str.extract(regex)
+                    # Sinon, la correspondance est simple
+                    #             # Suppression des colonnes d'origine qui ont été découpées
+            df.drop(columns=[name for name in column_mapping.keys() if isinstance(column_mapping[name], dict)], inplace=True)
+                    # 
+                    # """

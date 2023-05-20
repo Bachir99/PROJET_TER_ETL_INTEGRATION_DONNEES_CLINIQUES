@@ -25,7 +25,7 @@ def V_today1(df, column_name, reject_list,rejections_count):
             row_copy = row.copy()
             row_copy['Rejet'] = rule_name
             reject_list.concat(row_copy)
-            rejections_count[rule_name] += 1
+            rejections_count[rule_name][column_name] += 1
             return False
         return True
     df = df[df.apply(check_date, axis=1)]
@@ -43,7 +43,7 @@ def V_date_of_birth1(df, column_name,reject_list,rejections_count):
             row_copy = row.copy()
             row_copy['Rejet'] = rule_name
             reject_list.append(row_copy)
-            rejections_count[rule_name] += 1
+            rejections_count[rule_name][column_name] += 1
             return False
 
         return True
@@ -62,7 +62,7 @@ def V_dateOfDeath(df, column_name,reject_list,rejections_count):
             row_copy = row.copy()
             row_copy['Rejet'] = rule_name
             reject_list.append(row_copy)
-            rejections_count[rule_name] += 1
+            rejections_count[rule_name][column_name] += 1
             return False
 
         return True
@@ -90,7 +90,7 @@ def V_NotNull1(row,column_name, reject_list,rejections_count):
         row_copy = row.copy()
         row_copy['Rejet'] = rule_name
         reject_list.append(row_copy)
-        rejections_count[rule_name] += 1
+        rejections_count[rule_name][column_name] += 1
         return False
     return True
 
@@ -100,31 +100,31 @@ def V_NotNull2(row,column_name, warnings_list, warnings_count):
         row_copy = row.copy()
         row_copy['Avertissement'] = rule_name
         warnings_list.append(row_copy)
-        warnings_count[rule_name] += 1
+        warnings_count[rule_name][column_name] += 1
 
 def V_length50(row, column_name, warnings_list, warnings_count):
     rule_name = 'V-length50'
     if len(str(row[column_name])) > 50:
         row_copy = row.copy()
         row_copy['Avertissement'] = rule_name
-        warnings_list.concat(row_copy)
-        warnings_count[rule_name] += 1
+        warnings_list.append(row_copy)
+        warnings_count[rule_name][column_name] += 1
 
 def V_length100(row, column_name, warnings_list, warnings_count):
     rule_name = 'V-length100'
     if len(str(row[column_name])) > 100:
         row_copy = row.copy()
         row_copy['Avertissement'] = rule_name
-        warnings_list.concat(row_copy)
-        warnings_count[rule_name] += 1
+        warnings_list.append(row_copy)
+        warnings_count[rule_name][column_name] += 1
 
 def V_alpha1(row, column_name,reject_list, rejections_count):
     rule_name = 'V-alpha-1'
     if not str(row[column_name]).isalpha():
         row_copy = row.copy()
         row_copy['Rejet'] = rule_name
-        reject_list.concat(row_copy)
-        rejections_count[rule_name] += 1
+        reject_list.append(row_copy)
+        rejections_count[rule_name][column_name] += 1
         return False
     return True
 
@@ -133,8 +133,8 @@ def V_alpha2(row, column_name,warnings_list, warnings_count):
     if not str(row[column_name]).isalpha():
         row_copy = row.copy()
         row_copy['Avertissement'] = rule_name
-        warnings_list.concat(row_copy)
-        warnings_count[rule_name] += 1
+        warnings_list.append(row_copy)
+        warnings_count[rule_name][column_name] += 1
 #################""
 
 def T_EncounterNumber_1(row,column_name):
@@ -156,7 +156,7 @@ def D_BedNumber_1(row, column_name, warnings_list, warnings_count):
         row_copy = row.copy()
         row_copy['Avertissement'] = rule_name
         warnings_list.append(row_copy)
-        warnings_count[rule_name] += 1
+        warnings_count[rule_name][column_name] += 1
     
     return f"{row['Hospital']}-{row['Ward']}-{row['RoomNumber']}-{bed_number}"
 
@@ -167,7 +167,7 @@ def D_RoomNumber_1(row, column_name, warnings_list, warnings_count):
         row_copy = row.copy()
         row_copy['Avertissement'] = rule_name
         warnings_list.append(row_copy)
-        warnings_count[rule_name] += 1
+        warnings_count[rule_name][column_name] += 1
     return f"{row['Hospital']}-{row['Ward']}-{room_number}"
 
 def T_RoomNumber_1(row, room_number_column):
@@ -181,7 +181,7 @@ def V_Num_1(row, column_name, reject_list, rejections_count):
         row_copy = row.copy()
         row_copy['Rejet'] = rule_name
         reject_list.append(row_copy)
-        rejections_count[rule_name] += 1
+        rejections_count[rule_name][column_name] += 1
 
 def V_Quantity_1(row, column_name, reject_list, rejections_count):
     rule_name = 'V-Quantity-1'
@@ -189,7 +189,7 @@ def V_Quantity_1(row, column_name, reject_list, rejections_count):
         row_copy = row.copy()
         row_copy['Rejet'] = rule_name
         reject_list.append(row_copy)
-        rejections_count[rule_name] += 1
+        rejections_count[rule_name][column_name] += 1
 
 
 def D_Age_1(row,column_name_age, warnings_list, warnings_count):
@@ -204,7 +204,7 @@ def D_Age_1(row,column_name_age, warnings_list, warnings_count):
             row_copy = row.copy()
             row_copy['Avertissement'] = rule_name
             warnings_list.append(row_copy)
-            warnings_count[rule_name] += 1
+            warnings_count[rule_name][column_name_age] += 1
         
         return age_years
     else:
@@ -225,7 +225,7 @@ def V_GTE0_1(row, column_name, reject_list, rejections_count):
         row_copy = row.copy()
         row_copy['Rejet'] = rule_name
         reject_list.append(row_copy)
-        rejections_count[rule_name] += 1
+        rejections_count[rule_name][column_name] += 1
 
 def D_Duration_1(row,column_name_duration, warnings_list, warnings_count):
     rule_name = 'D-Duration-1'
@@ -236,7 +236,7 @@ def D_Duration_1(row,column_name_duration, warnings_list, warnings_count):
             row_copy = row.copy()
             row_copy['Avertissement'] = rule_name
             warnings_list.append(row_copy)
-            warnings_count[rule_name] += 1
+            warnings_count[rule_name][column_name_duration] += 1
         return duration
     else:
         return row[column_name_duration] # conserver la valeur originale si 'EndDateTime' est NULL
@@ -270,9 +270,9 @@ def deduplicate(input_csv,rejections_count):
 
     # Compter le nombre de lignes dupliquées
     nb_lignes_dupliquees = len(input_csv) - len(deduplicated_df)
-    rejections_count[rule_name] = nb_lignes_dupliquees
+    rejections_count[rule_name]['/'] = nb_lignes_dupliquees
 
-    return deduplicated_df,duplicates_df
+    return deduplicated_df, duplicates_df
 
 
 
@@ -309,31 +309,35 @@ def main():
     df = pd.read_csv(sys.stdin)
     initial_row_count = len(df)
     
-    summary_df = pd.DataFrame(columns=['Rule', 'Rejected', 'Warned','Initial'])
-    initial_df = pd.DataFrame({'Rule': 'Nbr de lignes initial','Initial' : initial_row_count}, index=[0])
-    summary_df = pd.concat([summary_df, initial_df], ignore_index=True)
 
-    
-    warnings_count = {"V-length50":0,
-                      "V-length100":0,
-                      "V-alpha-2":0,
-                      "V-NotNull-2":0,
-                      "D-BedNumber-1":0,
-                      "D-RoomNumber-1":0,
-                      "D-Age-1" :0,
-                      "D-Duration-1" :0
+    warnings_count = {
+        "V-length50": {},
+        "V-length100": {},
+        "V-alpha-2": {},
+        "V-NotNull-2": {},
+        "D-BedNumber-1": {},
+        "D-RoomNumber-1": {},
+        "D-Age-1": {},
+        "D-Duration-1": {}
+    }
 
-                      }
-    rejections_count = {"V-NotNull-1":0,
-                        "V-alpha-1":0,
-                        "V-Today-1":0,
-                        "V-DateOfBirth-1":0,
-                        "V-DateofDeath":0,
-                        "Deduplication":0,
-                        "V-Quantity-1":0,
-                        "V-GTE0-1":0,
-                        "V-Num-1":0
-                        }
+    rejections_count = {
+        "V-NotNull-1": {},
+        "V-alpha-1": {},
+        "V-Today-1": {},
+        "V-DateOfBirth-1": {},
+        "V-DateofDeath": {},
+        "Deduplication": {},
+        "V-Quantity-1": {},
+        "V-GTE0-1": {},
+        "V-Num-1": {}
+    }
+    liste_columns=['DateOfBirth', 'DateofDeath', 'Hospital', 'PatientNumber', 'FathersName', 'FathersPreName', 'PlaceOfBirth', 'SourcePatientNumber', 'PatientDeceased', 'DateOfDeath', 'Title', 'EncounterNumber', 'BedNumber', 'Age', 'RoomNumber', 'DiagnosisCode', 'DiagnosisVersion', 'Sequence', 'ProcedureVersion', 'Quantity', 'Duration', 'ServiceDescription']
+    # Initialisation des dictionnaires de dictionnaires
+    for rule_dict in (warnings_count, rejections_count):
+        for rule_name in rule_dict:
+            rule_dict[rule_name] = {column_name: 0 for column_name in liste_columns}
+
     df, duplicates_df = deduplicate(df,rejections_count)
     
     warnings_list = []
@@ -372,6 +376,9 @@ def main():
         "D_DummyEncounterNumber_1" : D_DummyEncounterNumber_1
     }
     for column, functions in rules.items():
+        if column not in df.columns:
+            continue  # Skip to the next column if it doesn't exist in the DataFrame
+
         for function_name in functions:
             if function_name in validation_functions:
                 function = validation_functions[function_name]
@@ -392,7 +399,6 @@ def main():
 
     #FileDateCreation
     file_date_creation = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    #df.loc[0:0, 'FileDateCreation'] = file_date_creation
     df['FileDateCreation'].iloc[0:1] = file_date_creation
 
 
