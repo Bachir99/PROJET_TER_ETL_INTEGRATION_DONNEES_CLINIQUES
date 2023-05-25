@@ -9,6 +9,9 @@ from openpyxl.utils import get_column_letter, range_boundaries
 from openpyxl.styles import Border, Side, PatternFill, Font, Alignment
 from openpyxl.worksheet.dimensions import ColumnDimension
 from openpyxl.chart import BarChart, Reference
+import io 
+import sys
+
 def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
 
     rules_and_significations = {
@@ -21,13 +24,15 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
         "V-length100": "Lenght =<100",
         "V-alpha-1": "Alpha Characters only",
         "V-alpha-2": "Alpha Characters only",
+        "Deduplication" : "Deduplicated lines based on a unique value per line, or the whole line duplicated"
     }
 
     # Calculate total warnings
-    total_warnings = sum(warnings_count.values())
+    total_warnings = sum(sum(d.values()) for d in warnings_count.values())
 
     # Calculate total rejections
-    total_rejections = sum(rejections_count.values())
+    total_rejections = sum(sum(d.values()) for d in rejections_count.values())
+
     # Créer un nouveau classeur Excel
     wb = openpyxl.Workbook()
 
@@ -138,7 +143,7 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     table = [
         'Total number of initial records:',
         'Number of rejected records:',
-        'Number of averted records:'
+        'Number of warned records:'
     ]
 
     for row in range(14, 17):
@@ -218,7 +223,7 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     cell.alignment = alignment
 
     table = [
-        "PPM load field name",
+        "Field name",
         "Validation Type",
         "Rule ID",
         "Validation rule",
@@ -240,86 +245,77 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
 
     # Parcourir le dictionnaire warnings_count
     for key, value in warnings_count.items():
-        if value != 0:
-            worksheet.cell(row=row, column=3).value = 'Warning'
-            worksheet.cell(row=row, column=4).value = key
-            worksheet.cell(
-                row=row, column=5).value = rules_and_significations[key]
-            worksheet.cell(row=row, column=6).value = value
-            worksheet.cell(row=row, column=6).alignment = alignment
-            worksheet.cell(row=row, column=7).value = str(
-                int((value / initial_row_count) * 100))+'%'
-            worksheet.cell(row=row, column=7).alignment = alignment
-            row += 1
-            for col in range(2, 8):
-                cell = worksheet.cell(row=row-1, column=col)
-                cell.border = Border(
-                    left=Side(border_style='thin', color='000000'),
-                    right=Side(border_style='thin', color='000000'),
-                    top=Side(border_style='thin', color='000000'),
-                    bottom=Side(border_style='thin', color='000000'))
-    # Parcourir le dictionnaire rejections_count
-    for key, value in rejections_count.items():
-        if value != 0:
-            worksheet.cell(row=row, column=3).value = 'Rejection'
-            worksheet.cell(row=row, column=4).value = key
-            if key != 'Deduplication':
+        for keyy, valuee in value.items():
+            if valuee != 0:
+                worksheet.cell(row=row, column=2).value = keyy
+                worksheet.cell(row=row, column=3).value = 'Warning'
+                worksheet.cell(row=row, column=4).value = key
                 worksheet.cell(
                     row=row, column=5).value = rules_and_significations[key]
-            worksheet.cell(row=row, column=6).value = value
-            worksheet.cell(row=row, column=6).alignment = alignment
-            worksheet.cell(row=row, column=7).value = str(
-                int((value / initial_row_count) * 100))+'%'
-            worksheet.cell(row=row, column=7).alignment = alignment
-            row += 1
-            for col in range(2, 8):
-                cell = worksheet.cell(row=row-1, column=col)
-                cell.border = Border(
-                    left=Side(border_style='thin', color='000000'),
-                    right=Side(border_style='thin', color='000000'),
-                    top=Side(border_style='thin', color='000000'),
-                    bottom=Side(border_style='thin', color='000000'))
+                worksheet.cell(row=row, column=6).value = valuee
+                worksheet.cell(row=row, column=6).alignment = alignment
+                worksheet.cell(row=row, column=7).value = str(
+                    int((valuee / initial_row_count) * 100))+'%'
+                worksheet.cell(row=row, column=7).alignment = alignment
+                row += 1
+                for col in range(2, 8):
+                    cell = worksheet.cell(row=row-1, column=col)
+                    cell.border = Border(
+                        left=Side(border_style='thin', color='000000'),
+                        right=Side(border_style='thin', color='000000'),
+                        top=Side(border_style='thin', color='000000'),
+                        bottom=Side(border_style='thin', color='000000'))
+    # Parcourir le dictionnaire rejections_count
+    for key, value in rejections_count.items():
+        for keyy, valuee in value.items():
+            if valuee != 0:
+                worksheet.cell(row=row, column=2).value = keyy
+                worksheet.cell(row=row, column=3).value = 'Rejection'
+                worksheet.cell(row=row, column=4).value = key
+                worksheet.cell(
+                    row=row, column=5).value = rules_and_significations[key]
+                worksheet.cell(row=row, column=6).value = valuee
+                worksheet.cell(row=row, column=6).alignment = alignment
+                worksheet.cell(row=row, column=7).value = str(
+                    int((valuee / initial_row_count) * 100))+'%'
+                worksheet.cell(row=row, column=7).alignment = alignment
+                row += 1
+                for col in range(2, 8):
+                    cell = worksheet.cell(row=row-1, column=col)
+                    cell.border = Border(
+                        left=Side(border_style='thin', color='000000'),
+                        right=Side(border_style='thin', color='000000'),
+                        top=Side(border_style='thin', color='000000'),
+                        bottom=Side(border_style='thin', color='000000'))
 
 
 
 
 
-    # Récupérer les données
-    data = []
-    labels = []
-    for row in worksheet.iter_rows(min_row=14, max_row=14, min_col=6, max_col=6):
-        for cell in row:
-            data.append(cell.value)
-    for row in worksheet.iter_rows(min_row=14, max_row=14, min_col=2, max_col=2):
-        for cell in row:
-            labels.append(cell.value)
-            
 
-    # Récupérer les données
-    data = []
-    labels = []
-    for row in worksheet.iter_rows(min_row=20, max_row=20, min_col=6, max_col=6):
-        for cell in row:
-            data.append(cell.value)
-    for row in worksheet.iter_rows(min_row=20, max_row=20, min_col=4, max_col=4):
-        for cell in row:
-            labels.append(str(cell.value))
+    start_row = 20  # Ligne de départ
+    end_row = worksheet.max_row
 
-    # Créer le graphique
     chart = BarChart()
     chart.type = "col"
     chart.style = 10
-    chart.title = "Distribution du nbr de lignes rejetées/averties"
+    chart.title = "Distribution du nombre de lignes rejetées/averties"
     chart.y_axis.title = "Nombre de lignes rejetées/averties"
     chart.x_axis.title = "Règles"
 
-    data_ref = Reference(worksheet, min_col=6, min_row=20, max_row=20)
-    labels_ref = Reference(worksheet, min_col=4, min_row=20, max_row=20)
+    for row_number in range(start_row, end_row + 1):
+        # Ajouter une série de données pour chaque ligne
+        data_ref = Reference(worksheet, min_col=6, min_row=row_number, max_row=row_number)
+        # Add data without using titles from data
+        chart.add_data(data_ref, titles_from_data=False)
 
-    chart.add_data(data_ref, titles_from_data=True)
-    chart.set_categories(labels_ref)
+
     # Ajouter le graphique à la feuille de calcul
-    worksheet.add_chart(chart, "H19")
+    chart_location = "H19"  # Emplacement du graphique sur la feuille de calcul
+    worksheet.add_chart(chart, chart_location)
+
+
+
 
     worksheet.column_dimensions['A'].width = 20
     worksheet.column_dimensions['B'].width = 20
@@ -332,4 +328,4 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     worksheet.column_dimensions['I'].width = 20
     worksheet.column_dimensions['J'].width = 20
 
-    wb.save('/opt/nifi/nifi-current/scripts/ValidationReport.xlsx')
+    wb.save('/opt/nifi/nifi-current/scripts/results/ValidationReport.xlsx')

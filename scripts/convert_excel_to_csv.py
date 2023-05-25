@@ -3,12 +3,20 @@ import os
 import pandas as pd
 import re
 import datetime
+import tempfile
+import openpyxl
 
-# Récupérer le chemin du fichier Excel à partir des arguments de ligne de commande
+# Create a temporary file
+#with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as temp:
+#    for line in sys.stdin.buffer:
+#        temp.write(line)
+#    temp_filename = temp.name
+
+# Now you can use pandas to read the file
+#df = pd.read_excel(temp_filename, engine='openpyxl')
+
 input_excel_file = sys.argv[1]
-
-# Lire le fichier Excel
-df = pd.read_excel(input_excel_file)
+df = pd.read_excel(input_excel_file, dtype=str)
 
 dic = {'January' : '01', 'February' :'02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
        'July': '07', 'August': '08', 'September': '09', 'October': '10', 'November': '11', 'December': '12'}
@@ -17,9 +25,8 @@ dic = {'January' : '01', 'February' :'02', 'March': '03', 'April': '04', 'May': 
 for i in range(len(df.index)):
     for j in range(len(df.columns)):
         cell_value = str(df.iloc[i, j])
+        # La valeur de la cellule correspond à l'expression régulière
         if isinstance(cell_value, str) and re.match(r'^\d{2}-\d{2}-\d{4}$', cell_value):
-            # La valeur de la cellule correspond à l'expression régulière
-
             # Modifier le format de la chaîne de caractères
             new_value = re.sub(r'^(\d{2})-(\d{2})-(\d{4})$', r'\3-\2-\1 00:00:00', cell_value)
             
