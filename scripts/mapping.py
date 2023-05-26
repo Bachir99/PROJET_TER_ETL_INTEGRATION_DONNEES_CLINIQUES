@@ -523,8 +523,23 @@ dict_pharmacy = {
 'OrderDateTime':'LINE_ORDER_DATE'
 }
 
+dict_theater ={
+'PatientNumber': 'PATIENTID',
+'StartDateTime': 'OPERATION_STARTED',
+'ServiceCode': 'STAFF_ID',
+'EncounterNumber': 'ENCOUNTERID',
+'Duration' : 'DURATION_MINUTS',
+'EndDateTime':'OPERATION_END',
+'Extra:ServiceDescription':'DESCRIPTION',
+#'ServiceGroup':'ACTIVITYTYPE',
+'Extra:ConsultantName' : 'CONSULTANT',
+'Extra:ElectiveOrEmergency':'OR_TYPE',
+'Extra:OperationID':'PRODUCTCODE',
+'EncounterType' : 'ENCOUNTER_TYPE',
+}
+
 # Exécution de la fonction avec le dictionnaire de correspondances
-mapping(df, dict_pharmacy, file_name, file_type,warnings_count, rejections_count)
+mapping(df, dict_theater, file_name, file_type,warnings_count, rejections_count)
 
 
 

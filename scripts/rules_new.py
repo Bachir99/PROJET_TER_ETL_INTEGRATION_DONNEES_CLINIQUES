@@ -160,7 +160,7 @@ def T_PatientNumber_1(df, row,column_name):
         return f"{row['HOSPITAL']}-{row[column_name]}"
     else :
         return f"NULL-{row[column_name]}"
-        #TODO : supprimer la colonne Hospital dans le fichier Patient et peut etre d'autres
+
 def T_BedNumber_1(df, row, column_name):
     if 'ROOMNUMBER' in df.columns :
         if 'HOSPITAL' in df.columns :
@@ -172,6 +172,7 @@ def T_BedNumber_1(df, row, column_name):
             return f"{row['HOSPITAL']}-{row['WARD']}-NULL-{row[column_name]}"
         else :
             return f"NULL-{row['WARD']}-NULL-{row[column_name]}"
+
 def T_RoomNumber_1(df,row, room_number_column):
     if 'HOSPITAL' in df.columns :
         room_number_combined = f"{row['HOSPITAL']}-{row['WARD']}-{row[room_number_column]}"
@@ -269,6 +270,17 @@ def V_Quantity_1(row, column_name, reject_list, rejections_count):
 def D_DummyEncounterNumber_1(row):
     encounter_number = f"{row['HOSPITAL']}-{row['PATIENTNUMBER']}-{row['SERVICINGDEPARTMENT']}-{row['STARTDATETIME'].strftime('%d%m%Y')}"
     return encounter_number
+
+def V_GTE0_1(row, column_name, reject_list, rejections_count):
+    rule_name = 'V-GTE0-1'
+    if pd.isna(row[column_name]) or not int(row[column_name]) >= 0:
+        row_copy = row.copy()
+        row_copy['Rejet'] = rule_name
+        reject_list.append(row_copy)
+        rejections_count[rule_name][column_name] += 1
+        return False
+    return True
+
 ################################################ 
 
 def D_Age_1(row,column_name_age, warnings_list, warnings_count):
@@ -289,6 +301,7 @@ def D_Age_1(row,column_name_age, warnings_list, warnings_count):
     else:
         return row[column_name_age]  # Conserve la valeur originale si DateOfBirth est NULL
 
+#CELLE LA S'APPLIQUE SUR QUOI??
 def D_Null_1(row, column_name):
     value = row[column_name]
     if value == '':
@@ -296,29 +309,22 @@ def D_Null_1(row, column_name):
     return row[column_name]
 
 
-def V_GTE0_1(row, column_name, reject_list, rejections_count):
-    rule_name = 'V-GTE0-1'
-    if not int(row[column_name]) >= 0:
-        row_copy = row.copy()
-        row_copy['Rejet'] = rule_name
-        reject_list.append(row_copy)
-        rejections_count[rule_name][column_name] += 1
-        return False
-    return True
-
-def D_Duration_1(row,column_name_duration, warnings_list, warnings_count):
+#TROP BIZARRE CETTE REGLE FAUT DEMANDER A BILEL
+def D_Duration_1(row, column_name_duration, warnings_list, warnings_count):
     rule_name = 'D-Duration-1'
     if pd.notnull(row['ENDDATETIME']):
-        duration = (row['ENDDATETIME'] - row['STARTDATETIME']).total_seconds() / 60.0
-        duration = round(duration) # convertir en nombre entier
-        if duration != row[column_name_duration]:
+        end_datetime = pd.to_datetime(row['ENDDATETIME'])
+        start_datetime = pd.to_datetime(row['STARTDATETIME'])
+        duration = (end_datetime - start_datetime).total_seconds() / 60.0
+        duration = round(duration)  # convert to integer
+        if duration != int(row[column_name_duration]):
             row_copy = row.copy()
             row_copy['Avertissement'] = rule_name
             warnings_list.append(row_copy)
             warnings_count[rule_name][column_name_duration] += 1
         return duration
     else:
-        return row[column_name_duration] # conserver la valeur originale si 'EndDateTime' est NULL
+        return row[column_name_duration]  # keep the original value if 'EndDateTime' is NULL
 
 def T_RoundInteger_1(row, column_name):
     value = row[column_name]
@@ -492,18 +498,22 @@ def main():
             
                 elif function_name == "T_PatientNumber_1":
                     df[column] = df.apply(lambda row: function(df, row, column), axis=1)
-                    # Remove the 'Hospital' column quand c'est le fichier patient
-                    #df.drop('Hospital', axis=1, inplace=True)
+                
                 elif function_name in ["T_BedNumber_1", "T_RoomNumber_1"]:
                     df.apply(lambda row: function(df, row, column), axis=1)
+                
                 elif function_name in ["D_BedNumber_1","D_RoomNumber_1"]:
                     df[column] = df.apply(lambda row: function(df, row, warnings_list,warnings_count), axis=1)
+                
                 elif function_name in ["V_length50", "V_length100", "V_alpha2","V_NotNull2","D_Age_1","D_Duration_1"]:
                     df.apply(lambda row: function(row, column, warnings_list, warnings_count), axis=1)
+                
                 elif function_name in ["V_NotNull1","V_alpha1","V_GTE0_1","V_Quantity_1","V_Num_1"] :
                     df = df[df.apply(lambda row: function(row, column,reject_list, rejections_count), axis=1)]
+                
                 elif function_name == "D_Sequence_1" :
                     df = function(df, 'PATIENTNUMBER',column)
+                
                 else:
                     df = function(df, column,reject_list, rejections_count)
 

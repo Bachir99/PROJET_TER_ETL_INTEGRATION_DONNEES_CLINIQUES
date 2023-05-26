@@ -11,13 +11,13 @@ from openpyxl.worksheet.dimensions import ColumnDimension
 from openpyxl.chart import BarChart, Reference
 import io 
 import sys
-
+#TODO : add the Cluster, Hospital sur le fichier excel
 def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     #TODO : add the signification of the other rules
     rules_and_significations = {
         "V-Today-1": "<= TODAY",
         "V-DateOfBirth-1": "not > 125 years ago",
-        "V-DateofDeath": ">= [DateofBirth]",
+        "V-DateofDeath": "Date must be greater than or equal to DateOfBirth",
         "V-NotNull-1": "<> NULL / blank (Rejet)",
         "V-NotNull-2": "<> NULL / blank (Avertissement)",
         "V-length50": "Lenght =<50",
@@ -26,10 +26,12 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
         "V-alpha-2": "Alpha Characters only",
         "Deduplication" : "Deduplicated lines based on a unique value per line, or the whole line duplicated",
         "Absence MandatoryField" : "A mandatory field was missing",
-        "D-RoomNumber-1" : "If Null, [Hospital]+'-'+[Ward]+'-'+[NULL]",
-        "D-BedNumber-1" : "If Null,  [Hospital] + '-'  + [Ward] + '-'  + [RoomNumber] + '-' + [NULL]",
-        "V-Num-1":"Numeric only",
-        "V-Quantity-1":"> 0"
+        "D-RoomNumber-1" : "RoomNumber is missing",
+        "D-BedNumber-1" : "BedNumber is missing",
+        "V-Num-1":"Value must be numeric only",
+        "V-Quantity-1":"Value must be greater than zero",
+        "D-Duration-1":"Default value applied for Duration",
+        "V-GTE0-1":"Value must be greater than or equal to zero"
     }
 
     # Calculate total warnings
