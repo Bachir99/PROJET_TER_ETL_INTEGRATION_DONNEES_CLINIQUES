@@ -12,15 +12,16 @@ def recuperate(file_path):
         content = file.read().strip()
     return content
 
-def mapping(df, column_mapping, nom_fichier, type_fichier, rejections_count):
+def mapping(df, column_mapping, nom_fichier, type_fichier,warnings_count, rejections_count):
     
     #Les mettre en majuscule
     column_mapping = {key.upper(): value for key, value in column_mapping.items()}
     
     
     if len(column_mapping)==0:
-        create_excel(df,len(df),0,rejections_count)
-    
+        create_excel(df,len(df),warnings_count,rejections_count)
+        df = pd.DataFrame()
+        df.to_csv(sys.stdout, sep=',', index=False)
     else :
         # Réorganiser les colonnes du DataFrame en suivant l'ordre défini dans le dictionnaire
         df = df[column_mapping.values()]
@@ -34,7 +35,8 @@ def mapping(df, column_mapping, nom_fichier, type_fichier, rejections_count):
                     df.rename(columns={original_name: new_names}, inplace=True)
             
             # Recherche du nom de l'hôpital dans le nom du fichier
-            hopital_name = re.search('(Hop[^_]*)', nom_fichier)            
+            hopital_name = re.search(r'_(.*?)_', nom_fichier)
+           
             if hopital_name is not None:
                 df.insert(1, 'HOSPITAL', hopital_name.group(1))
 
@@ -56,8 +58,9 @@ def mapping(df, column_mapping, nom_fichier, type_fichier, rejections_count):
                 # Récupération de la valeur correspondante
                 encounterType_value = encounterType.group()
                 # Création de la colonne "ENCOUNTERTYPE" avec le nom de l'hôpital
-                df.insert(1, 'ENCOUNTERTYPE', encounterType_value)
-            
+                df.insert(6, 'ENCOUNTERTYPE', encounterType_value)
+                        # Recherche du nom de l'hôpital dans le nom du fichier
+
             # Écriture du fichier CSV résultant sur la sortie standard (stdout)
             df.to_csv(sys.stdout, sep=',', index=False)            
                 
@@ -71,10 +74,9 @@ def mapping(df, column_mapping, nom_fichier, type_fichier, rejections_count):
                     df.rename(columns={original_name: new_names}, inplace=True)
             
             # Recherche du nom de l'hôpital dans le nom du fichier
-            hopital_name = re.search('(Hop.*)\.csv', nom_fichier)
-            
-            # Création de la colonne "Hospital" avec le nom de l'hôpital
-            df.insert(1, 'Hospital', hopital_name.group(1))
+            hopital_name = re.search(r'_(.*?)_', nom_fichier)
+            if hopital_name is not None:
+                df.insert(1, 'HOSPITAL', hopital_name.group(1))
 
             #TODO : BedNumber et RoomNumber c'est des colonnes qu'on doit en déduire
             
@@ -92,11 +94,10 @@ def mapping(df, column_mapping, nom_fichier, type_fichier, rejections_count):
                     df.rename(columns={original_name: new_names}, inplace=True)
             
             # Recherche du nom de l'hôpital dans le nom du fichier
-            hopital_name = re.search('(Hop.*)\.csv', nom_fichier)
-            
-            # Création de la colonne "Hospital" avec le nom de l'hôpital
-            df.insert(1, 'Hospital', hopital_name.group(1))            
-            
+            hopital_name = re.search(r'_(.*?)_', nom_fichier)
+            if hopital_name is not None:
+                df.insert(1, 'HOSPITAL', hopital_name.group(1))
+
             # Écriture du fichier CSV résultant sur la sortie standard (stdout)
             df.to_csv(sys.stdout, sep=',', index=False)          
         elif type_fichier == 'Procedure' : #Un fichier procédure
@@ -127,15 +128,18 @@ def mapping(df, column_mapping, nom_fichier, type_fichier, rejections_count):
                     df.rename(columns={original_name: new_names}, inplace=True)
             
             # Recherche du nom de l'hôpital dans le nom du fichier
-            hopital_name = re.search('(Hop.*)\.csv', nom_fichier)
+            hopital_name = re.search(r'_(.*?)_', nom_fichier)
+           
+            if hopital_name is not None:
+                df.insert(1, 'HOSPITAL', hopital_name.group(1))         
             
-            # Création de la colonne "Hospital" avec le nom de l'hôpital
-            df.insert(1, 'Hospital', hopital_name.group(1))            
+            match = re.search(r'Serv\.([A-Za-z0-9.]+)_', nom_fichier)
+            if match:
+                servicingDepartment = match.group(1)
             
-            servicingDepartment = re.search('Imaging|Laboratory|Theater|Pharmacy|Nutrition', nom_fichier)
-            
-            # Création de la colonne "Hospital" avec le nom de l'hôpital
-            df.insert(7, 'ServicingDepartment', servicingDepartment)               
+            # Insérer la nouvelle colonne
+            position = df.columns.get_loc('ENCOUNTERNUMBER') + 1
+            df.insert(position, 'SERVICINGDEPARTMENT', servicingDepartment)              
             
             # Écriture du fichier CSV résultant sur la sortie standard (stdout)
             df.to_csv(sys.stdout, sep=',', index=False) 
@@ -386,7 +390,28 @@ dict_service = {
 
 
 df = pd.read_csv(sys.stdin,dtype=str)
-rejections_count = {"Absence MandatoryField":len(df)}
+
+#TODO : Replace Hospital with the missing mandatory field, depends on the file
+
+rejections_count = {'Absence MandatoryField':{'Hospital':len(df)}}
+
+warnings_count = {
+        "V-length50": {},
+        "V-length100": {},
+        "V-alpha-2": {},
+        "V-NotNull-2": {},
+        "D-BedNumber-1": {},
+        "D-RoomNumber-1": {},
+        "D-Age-1": {},
+        "D-Duration-1": {}
+    }
+
+
+    # Initialisation des dictionnaires de dictionnaires
+for rule_name in warnings_count:
+    warnings_count[rule_name] = {'A': 0}
+
+
 
 file_name_path = "./file_name.txt"
 # Récupération du nom du fichier d'entrée
@@ -396,8 +421,8 @@ file_name = recuperate(file_name_path)
 file_type_path = "./file_type.txt"
 # Récupération du nom du fichier d'entrée
 file_type = recuperate(file_type_path)
-
-df[['FirstName','LastName']] = df['PATIENT_NAME_ENGLISH'].str.split(' ', expand=True)
+if 'PATIENT_NAME_ENGLISH' in df.columns:
+    df[['FirstName','LastName']] = df['PATIENT_NAME_ENGLISH'].str.split(' ', expand=True)
 dict_patient = {
             'PatientNumber':'MR_NO',		
             'DateOfBirth':'BIRTHDATE',
@@ -421,6 +446,21 @@ dict_encounter_ed = {
 
 dict_encounter_ip={
 'PatientNumber': 'PATIENTID',
+'StartDateTime': 'ADMIT_DATE',
+'EndDateTime': 'PHYSICAL_DISCHARGE_DATE',
+'EncounterNumber': 'ENCOUNTERID',
+'MaritalStatus': 'MARITALSTATUS',
+'Extra:DischargeStatus':'DISCHARGE_STATUS',
+'Extra:DischargeConsultantName':'DOCTOR_NAME.1',
+'Extra:Country':'RESIDENCECOUNTRY',
+'AdmittingConsultant':'DOCTOR_ID',
+'Extra:AdmittingConsultantName':'DOCTOR_NAME',
+'AdmittingConsultantSpecialty' :'SPECIALTY',
+'AdmitWard':'WARD_NAME'
+}
+
+dict_encounter_op={
+'PatientNumber': 'MR_NO',
 'Hospital': 'CLINIC',
 'StartDateTime': 'TIME_ARRIVED',
 'EndDateTime': 'TIME_COMPLETE',
@@ -428,8 +468,63 @@ dict_encounter_ip={
 'MaritalStatus': 'MARITALSTATUS',
 'Extra:DischargeStatus':'DISHARGE',
 }
+
+dict_transfer = {
+'PatientNumber': 'REGISTER_ID',
+'BedNumber': 'CURRENT_BED',
+'EncounterNumber': 'ENCOUNTERID',
+'Ward':'CURRENT_WARD',
+'StartDateTime': 'START_DATE'
+}
+
+dict_diagnosis = {
+'PatientNumber': 'MR_NO',
+'EncounterNumber': 'ENCOUNTERID',
+'DiagnosisCode':'DIAGNOSISCODE',
+#'DiagnosisVersion':'DESCRIPTION', ??
+'Extra:DiagnosisType':'DIAGNOSISTYPE',
+'ConditionOnset':'CONDITIONONSETFLAG',
+'Extra:DiagnosisDateTime':'DATE_RECORDED',
+}
+
+dict_imaging = {
+'PatientNumber': 'MR_NO',
+'StartDateTime': 'LINE_ORDER_DATE',
+'Quantity': 'UNITS_ORDERED',
+'ServiceCode': 'ACTIVITYID',
+'EncounterNumber': 'ENCOUNTERID',
+'EndDateTime': 'PHYSICAL_DISCHARGE_DATE',
+'Extra:ServiceDescription':'DESCRIPTION',
+'ServiceGroup':'ACTIVITYTYPE',
+#'OrderDateTime': 'LINE_ORDER_DATE',
+}
+
+dict_laboratory = {
+'PatientNumber': 'MR_NO',
+'StartDateTime': 'LINE_ORDER_DATE',
+'Quantity': 'UNITS_ORDERED',
+'ServiceCode': 'ACTIVITYID',
+'EncounterNumber': 'ENCOUNTERID',
+'EndDateTime': 'PHYSICAL_DISCHARGE_DATE',
+'Extra:ServiceDescription':'DESCRIPTION',
+'ServiceGroup':'ACTIVITYTYPE',
+#'OrderDateTime': 'LINE_ORDER_DATE',
+}
+
+dict_pharmacy = {
+'PatientNumber': 'MR_NO',
+'StartDateTime': 'TIME_ARRIVED',
+'Quantity': 'QUANTITY',
+'ServiceCode': 'ACTIVITYID',
+'EncounterNumber': 'ENCOUNTERID',
+'Extra:ServiceDescription':'DESCRIPTION',
+'ServiceGroup':'ACTIVITYTYPE',
+'Clinic':'CLINIC',
+'OrderDateTime':'LINE_ORDER_DATE'
+}
+
 # Exécution de la fonction avec le dictionnaire de correspondances
-mapping(df, dict_encounter_ed, file_name, file_type,rejections_count)
+mapping(df, dict_pharmacy, file_name, file_type,warnings_count, rejections_count)
 
 
 

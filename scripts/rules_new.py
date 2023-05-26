@@ -7,7 +7,7 @@ import numpy as np
 import json
 from excel import create_excel
 import math
-
+import csv
 """def get_rules_from_nifi_properties(file_path):
     with open(file_path, 'r') as file:
         for line in file:
@@ -135,45 +135,114 @@ def V_alpha2(row, column_name,warnings_list, warnings_count):
         row_copy['Avertissement'] = rule_name
         warnings_list.append(row_copy)
         warnings_count[rule_name][column_name] += 1
-#################""
 
-def T_EncounterNumber_1(row,column_name):
-    return f"{row['HOSPITAL']}-{row['ENCOUNTERTYPE']}-{row[column_name]}"
 
-def T_BedNumber_1(row, column_name):
-    return f"{row['HOSPITAL']}-{row['WARD']}-{row['ROOMNUMBER']}-{row[column_name]}"
+def T_EncounterNumber_1(df, file_type, row,column_name):
+    if file_type in ['Transfer','Diagnosis','Procedure']:
+        if 'HOSPITAL' in df.columns :
+            return f"{row['HOSPITAL']}-IP-{row[column_name]}"
+        else :
+            return f"NULL-IP-{row[column_name]}"
+    elif file_type == 'Service':
+        encounter_type = "IP" if 'ENCOUNTERTYPE' not in df.columns or pd.isnull(row['ENCOUNTERTYPE']) else row['ENCOUNTERTYPE']
+        if 'HOSPITAL' in df.columns :
+            return f"{row['HOSPITAL']}-{encounter_type}-{row[column_name]}"
+        else :
+            return f"NULL-{encounter_type}-{row[column_name]}"
+    else :
+        if 'HOSPITAL' in df.columns :
+            return f"{row['HOSPITAL']}-{row['ENCOUNTERTYPE']}-{row[column_name]}"
+        else :
+            return f"NULL-{row['ENCOUNTERTYPE']}-{row[column_name]}"
 
-def T_PatientNumber_1(row,column_name):
-    return f"{row['HOSPITAL']}-{row[column_name]}"
+def T_PatientNumber_1(df, row,column_name):
+    if 'HOSPITAL' in df.columns :
+        return f"{row['HOSPITAL']}-{row[column_name]}"
+    else :
+        return f"NULL-{row[column_name]}"
         #TODO : supprimer la colonne Hospital dans le fichier Patient et peut etre d'autres
-        
-def D_BedNumber_1(row, column_name, warnings_list, warnings_count):
-    
-    rule_name = 'D-BedNumber-1'
-    bed_number = row[column_name] if pd.notnull(row[column_name]) else 'NULL'
-    
-    if pd.isnull(row[column_name]):
-        row_copy = row.copy()
-        row_copy['Avertissement'] = rule_name
-        warnings_list.append(row_copy)
-        warnings_count[rule_name][column_name] += 1
-    
-    return f"{row['HOSPITAL']}-{row['WARD']}-{row['ROOMNUMBER']}-{bed_number}"
+def T_BedNumber_1(df, row, column_name):
+    if 'ROOMNUMBER' in df.columns :
+        if 'HOSPITAL' in df.columns :
+            return f"{row['HOSPITAL']}-{row['WARD']}-{row['ROOMNUMBER']}-{row[column_name]}"
+        else :
+            return f"NULL-{row['WARD']}-{row['ROOMNUMBER']}-{row[column_name]}"
+    else :
+        if 'HOSPITAL' in df.columns :
+            return f"{row['HOSPITAL']}-{row['WARD']}-NULL-{row[column_name]}"
+        else :
+            return f"NULL-{row['WARD']}-NULL-{row[column_name]}"
+def T_RoomNumber_1(df,row, room_number_column):
+    if 'HOSPITAL' in df.columns :
+        room_number_combined = f"{row['HOSPITAL']}-{row['WARD']}-{row[room_number_column]}"
+    else :
+        room_number_combined = f"NULL-{row['WARD']}-{row[room_number_column]}"
 
-def D_RoomNumber_1(row, column_name, warnings_list, warnings_count):
-    rule_name = 'D-RoomNumber-1'
-    room_number = row[column_name] if pd.notnull(row[column_name]) else 'NULL'  
-    if pd.isnull(row[column_name]):
-        row_copy = row.copy()
-        row_copy['Avertissement'] = rule_name
-        warnings_list.append(row_copy)
-        warnings_count[rule_name][column_name] += 1
-    return f"{row['HOSPITAL']}-{row['WARD']}-{room_number}"
-
-def T_RoomNumber_1(row, room_number_column):
-    room_number_combined = f"{row['HOSPITAL']}-{row['WARD']}-{row[room_number_column]}"
     row[room_number_column] = room_number_combined
     return row
+
+
+def D_BedNumber_1(df, row, warnings_list, warnings_count):
+    
+    rule_name = 'D-BedNumber-1'
+    bed_number = row['BEDNUMBER'] #if pd.notnull(row['BEDNUMBER']) else 'NULL'
+    
+    if row['BEDNUMBER'] == 'NULL' :
+        row_copy = row.copy()
+        row_copy['Avertissement'] = rule_name
+        warnings_list.append(row_copy)
+        warnings_count[rule_name]['BEDNUMBER'] += 1
+    if 'ROOMNUMBER' in df.columns :
+        if 'HOSPITAL' in df.columns :
+            return f"{row['HOSPITAL']}-{row['WARD']}-{row['ROOMNUMBER']}-{bed_number}"
+        else :
+            return f"NULL-{row['WARD']}-{row['ROOMNUMBER']}-{bed_number}"
+    else :
+        if 'HOSPITAL' in df.columns :
+            return f"{row['HOSPITAL']}-{row['WARD']}-NULL-{bed_number}"
+        else :
+            return f"NULL-{row['WARD']}-NULL-{bed_number}"
+        
+def D_RoomNumber_1(df, row, warnings_list, warnings_count):
+    rule_name = 'D-RoomNumber-1'
+    room_number = row['ROOMNUMBER'] #if pd.notnull(row['ROOMNUMBER']) else 'NULL'  
+    if row['ROOMNUMBER'] == 'NULL':
+        row_copy = row.copy()
+        row_copy['Avertissement'] = rule_name
+        warnings_list.append(row_copy)
+        warnings_count[rule_name]['ROOMNUMBER'] += 1
+    if 'HOSPITAL' in df.columns :
+        return f"{row['HOSPITAL']}-{row['WARD']}-{room_number}"
+    else :
+        return f"NULL-{row['WARD']}-{room_number}"
+
+
+def D_Sequence_1(df, patient_col, date_col):
+    # Trier le DataFrame par date de diagnostic pour chaque patient
+    df = df.sort_values(by=[patient_col, date_col])
+    
+    # Créer une nouvelle colonne qui numérote chaque ligne pour chaque patient
+    df['SEQUENCE'] = df.groupby(patient_col).cumcount() + 1
+
+    # Récupérer la liste des colonnes
+    cols = df.columns.tolist()
+
+    # Placer la colonne 'SEQUENCE' avant 'EXTRA:DIAGNOSISTYPE'
+    cols.insert(cols.index('EXTRA:DIAGNOSISTYPE'), cols.pop(cols.index('SEQUENCE')))
+    
+    # Réorganiser les colonnes du DataFrame
+    df = df[cols]
+    
+    return df
+
+def T_RoundNum92_1(row, column_name):
+    # Vérifiez si la valeur peut être convertie en float
+    try:
+        float_value = float(row[column_name])
+        return round(float_value, 2)
+    except ValueError:
+        # Si la valeur ne peut pas être convertie en float, retournez la valeur originale
+        return row[column_name]
 
 def V_Num_1(row, column_name, reject_list, rejections_count):
     rule_name = 'V-Num-1'
@@ -182,15 +251,25 @@ def V_Num_1(row, column_name, reject_list, rejections_count):
         row_copy['Rejet'] = rule_name
         reject_list.append(row_copy)
         rejections_count[rule_name][column_name] += 1
+        return False
+    return True
 
 def V_Quantity_1(row, column_name, reject_list, rejections_count):
     rule_name = 'V-Quantity-1'
-    if not row[column_name] > 0:
+    value = pd.to_numeric(row[column_name], errors='coerce')
+    if pd.isnull(value) or value <= 0:
         row_copy = row.copy()
         row_copy['Rejet'] = rule_name
         reject_list.append(row_copy)
         rejections_count[rule_name][column_name] += 1
+        return False
+    return True
 
+
+def D_DummyEncounterNumber_1(row):
+    encounter_number = f"{row['HOSPITAL']}-{row['PATIENTNUMBER']}-{row['SERVICINGDEPARTMENT']}-{row['STARTDATETIME'].strftime('%d%m%Y')}"
+    return encounter_number
+################################################ 
 
 def D_Age_1(row,column_name_age, warnings_list, warnings_count):
     rule_name = 'D-Age-1'
@@ -213,19 +292,19 @@ def D_Age_1(row,column_name_age, warnings_list, warnings_count):
 def D_Null_1(row, column_name):
     value = row[column_name]
     if value == '':
-        row[column_name] = 'Null'
+        row[column_name] = 'NULL'
     return row[column_name]
 
-def T_RoundNum92_1(row, column_name):
-    return round(row[column_name], 2)
 
 def V_GTE0_1(row, column_name, reject_list, rejections_count):
     rule_name = 'V-GTE0-1'
-    if not row[column_name] >= 0:
+    if not int(row[column_name]) >= 0:
         row_copy = row.copy()
         row_copy['Rejet'] = rule_name
         reject_list.append(row_copy)
         rejections_count[rule_name][column_name] += 1
+        return False
+    return True
 
 def D_Duration_1(row,column_name_duration, warnings_list, warnings_count):
     rule_name = 'D-Duration-1'
@@ -245,10 +324,7 @@ def T_RoundInteger_1(row, column_name):
     value = row[column_name]
     return math.ceil(value)
 
-def D_DummyEncounterNumber_1(row,column_name):
-    encounter_number = f"{row['HOSPITAL']}-{row['PATIENTNUMBER']}-{row['SERVICINGDEPARTMENT']}-{row['STARTDATETIME'].strftime('%d%m%Y')}"
-    return encounter_number
-
+#################################################################################
 def enlever_all_null_colonnes(df):
     for col in df.columns:
         if df[col].isna().all():
@@ -281,20 +357,25 @@ def recuperate(file_path):
 
 
 def main():
+    
     #DONE : Deduplicate à revoir, pour Patient c'est le PATIENTID le critère, mais les autres faut que toute la ligne se repète pour l'enlever
     #TODO : tout ce qui est date on leur applique toutes les règles des dates malgré que c'est pas mentionné, psq les dates c'est considéré comme mapping !
-    #TODO : Après avoir appliqué T-PatientNumber-1 faut supprimer la colonne Hospital dans quelques fichiers (à vérfier sur le doc du prof)
-    #TODO : Transfer, Diagnosis, Procedure dans EncounterNumber le EncounterType dans T-EncounterNumber-1 est toujours IP
-    #TODO : Après avoir appliqué EncounterNumber dans SERVICE faut supprimer la colonne EncounterType
+    #DONE : Après avoir appliqué T-PatientNumber-1 faut supprimer la colonne Hospital dans le fichier Patient
+    #DONE : Transfer, Diagnosis, Procedure dans EncounterNumber le EncounterType dans T-EncounterNumber-1 est toujours IP
+    #DONE : Après avoir appliqué EncounterNumber dans SERVICE faut supprimer la colonne EncounterType
     #TODO : Si on trouve pas un non MandatoryField c’est pas grave
     #TODO : Si on trouve une ligne qui contient une valeur NULL dans un mandatoryField on enlève la ligne (rejet) ====> (V-Not-Null-1) et ça dépend du fichier aussi
     #TODO : Sinon si ça l’est pas, on peut laisser NULL MAIS on fait un avertissement dans le rapport de validation que pour les DATES ==> (V-Not-Null-2), les autres on fait rien
-    #TODO : dans Service :	EncounterNumber	[Hospital]+"-"+[EncounterType]+"-"+[EncounterNumber] (si on trouve pas le EncounterType on met IP)
+    #DONE : dans Service :	EncounterNumber	[Hospital]+"-"+[EncounterType]+"-"+[EncounterNumber] (si on trouve pas le EncounterType on met IP)
     #DONE : D-DateCreation	Default	Date et heure quand le Output file a été crée, on l’applique sur LastUpdateDateTime
+    #DONE : Coder D-Sequence-1
+    
     
     file_type_path = "./file_type.txt"
     # Récupération du nom du fichier d'entrée
     file_type = recuperate(file_type_path)
+    
+    #TODO : finir ce dictionnaire
     rules={"DATEOFBIRTH": ["V_today1", "V_dateOfBirth1",], 
            "DATEOFDEATH": ["V_today1", "V_dateOfBirth1","V_dateOfDeath", "D_patientDeceased"], 
            "HOSPITAL": ["V_NotNull1"],
@@ -314,12 +395,13 @@ def main():
            "PROCEDUREVERSION" :  ["V_NotNull1"],
            "QUANTITY" : ["V_NotNull1", "V_Quantity_1" , "T_RoundNum92_1"],
            "DURATION" : ["V_GTE0_1","D_Duration_1",  "T_RoundNum92_1"],
-           "SERVICEDESCRIPTION" : ["V_length100"]}
+           "SERVICEDESCRIPTION" : ["V_length100"],
+           "EXTRA:DIAGNOSISDATETIME":["D_Sequence_1"]}
 
     df = pd.read_csv(sys.stdin, dtype=str)
     initial_row_count = len(df)
     
-
+    #TODO : ajouter toutes les règles ici
     warnings_count = {
         "V-length50": {},
         "V-length100": {},
@@ -328,7 +410,9 @@ def main():
         "D-BedNumber-1": {},
         "D-RoomNumber-1": {},
         "D-Age-1": {},
-        "D-Duration-1": {}
+        "D-Duration-1": {},
+        "D_BedNumber_1":{},
+        "D_RoomNumber_1":{}
     }
 
     rejections_count = {
@@ -380,31 +464,59 @@ def main():
         "D_RoomNumber_1" : D_RoomNumber_1,
         "V_Quantity_1" : V_Quantity_1,
         "T_RoundInteger_1" : T_RoundInteger_1,
-        "D_DummyEncounterNumber_1" : D_DummyEncounterNumber_1
+        "D_DummyEncounterNumber_1" : D_DummyEncounterNumber_1,
+        "D_Sequence_1" : D_Sequence_1
     }
+    
+    if 'BEDNUMBER' not in df.columns and file_type == 'Transfer':
+        df['BEDNUMBER'] = 'NULL'
+    elif 'ROOMNUMBER' not in df.columns and file_type == 'Transfer':
+        df['ROOMNUMBER'] = 'NULL'
+    
     for column, functions in rules.items():
         if column not in df.columns:
             continue  # Skip to the next column if it doesn't exist in the DataFrame
-
+        
         for function_name in functions:
             if function_name in validation_functions:
                 function = validation_functions[function_name]
+                
                 if function_name == "D_patientDeceased":
                     df['PATIENTDECEASED'] = df.apply(lambda row: function(row, column), axis=1)
-                elif function_name in ["T_RemoveLeadingZero_1","D_Null_1", "T_BedNumber_1","T_EncounterNumber_1", "T_RoomNumber_1","T_RoundNum92_1","T_RoundInteger_1","D_DummyEncounterNumber_1"]:  # Ajoutez ici le nom de votre règle
+                
+                elif function_name in ["T_RemoveLeadingZero_1","D_Null_1","T_RoundNum92_1","T_RoundInteger_1","D_DummyEncounterNumber_1"]:  # Ajoutez ici le nom de votre règle
                     df[column] = df.apply(lambda row: function(row, column), axis=1)
+                
+                elif function_name == "T_EncounterNumber_1":
+                    df[column] = df.apply(lambda row: function(df, file_type, row, column), axis=1)
+            
                 elif function_name == "T_PatientNumber_1":
-                    df[column] = df.apply(lambda row: function(row, column), axis=1)
+                    df[column] = df.apply(lambda row: function(df, row, column), axis=1)
                     # Remove the 'Hospital' column quand c'est le fichier patient
                     #df.drop('Hospital', axis=1, inplace=True)
-                elif function_name in ["V_length50", "V_length100", "V_alpha2","V_NotNull2","D_BedNumber_1", "D_RoomNumber_1","D_Age_1","D_Duration_1"]:
+                elif function_name in ["T_BedNumber_1", "T_RoomNumber_1"]:
+                    df.apply(lambda row: function(df, row, column), axis=1)
+                elif function_name in ["D_BedNumber_1","D_RoomNumber_1"]:
+                    df[column] = df.apply(lambda row: function(df, row, warnings_list,warnings_count), axis=1)
+                elif function_name in ["V_length50", "V_length100", "V_alpha2","V_NotNull2","D_Age_1","D_Duration_1"]:
                     df.apply(lambda row: function(row, column, warnings_list, warnings_count), axis=1)
-                elif function_name in ["V_NotNull1","V_alpha1","V_Num_1","V_Quantity_1","V_GTE0_1"] :
+                elif function_name in ["V_NotNull1","V_alpha1","V_GTE0_1","V_Quantity_1","V_Num_1"] :
                     df = df[df.apply(lambda row: function(row, column,reject_list, rejections_count), axis=1)]
+                elif function_name == "D_Sequence_1" :
+                    df = function(df, 'PATIENTNUMBER',column)
                 else:
                     df = function(df, column,reject_list, rejections_count)
 
+    if file_type == 'Service':
+        df['STARTDATETIME'] = pd.to_datetime(df['STARTDATETIME'])
+        df['DUMMYENCOUNTERNUMBER'] = df.apply(D_DummyEncounterNumber_1, axis=1)
+        df = df.drop('ENCOUNTERTYPE', axis=1) if 'ENCOUNTERTYPE' in df.columns else df
+    
+    if file_type =='Patient':
+        df = df.drop('HOSPITAL', axis=1)        
+    
     #FileDateCreation
+    df = df.reset_index(drop=True)
     file_date_creation = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     df.loc[0, 'LASTUPDATEDATETIME'] = file_date_creation
     

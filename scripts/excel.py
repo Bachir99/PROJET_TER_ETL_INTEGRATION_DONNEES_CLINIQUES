@@ -13,7 +13,7 @@ import io
 import sys
 
 def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
-
+    #TODO : add the signification of the other rules
     rules_and_significations = {
         "V-Today-1": "<= TODAY",
         "V-DateOfBirth-1": "not > 125 years ago",
@@ -24,7 +24,12 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
         "V-length100": "Lenght =<100",
         "V-alpha-1": "Alpha Characters only",
         "V-alpha-2": "Alpha Characters only",
-        "Deduplication" : "Deduplicated lines based on a unique value per line, or the whole line duplicated"
+        "Deduplication" : "Deduplicated lines based on a unique value per line, or the whole line duplicated",
+        "Absence MandatoryField" : "A mandatory field was missing",
+        "D-RoomNumber-1" : "If Null, [Hospital]+'-'+[Ward]+'-'+[NULL]",
+        "D-BedNumber-1" : "If Null,  [Hospital] + '-'  + [Ward] + '-'  + [RoomNumber] + '-' + [NULL]",
+        "V-Num-1":"Numeric only",
+        "V-Quantity-1":"> 0"
     }
 
     # Calculate total warnings
@@ -321,7 +326,7 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     worksheet.column_dimensions['B'].width = 20
     worksheet.column_dimensions['C'].width = 20
     worksheet.column_dimensions['D'].width = 20
-    worksheet.column_dimensions['E'].width = 30
+    worksheet.column_dimensions['E'].width = 60
     worksheet.column_dimensions['F'].width = 20
     worksheet.column_dimensions['G'].width = 20
     worksheet.column_dimensions['H'].width = 20

@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3.11"
 services:
   nifi:
     build: ./
@@ -10,5 +10,5 @@ services:
       - SINGLE_USER_CREDENTIALS_USERNAME=83bce041-86a1-4a62-a96e-777270d79562
       - SINGLE_USER_CREDENTIALS_PASSWORD=zY9loK9JSMAVxtuH4mDwFN3vfNTBtcns
     volumes:
-      - ./nifi_data:/opt/nifi/nifi-current/data
-      - /home/bachir/Bureau/S8/HAI823I TER/scripts:/opt/nifi/nifi-current/scripts
+      - ./nifi_data:/opt/nifi/nifi-current/data:rw
+      - /home/bachir/Bureau/S8/HAI823I TER/scripts:/opt/nifi/nifi-current/scripts:rw

@@ -63,7 +63,10 @@ if __name__ == '__main__':
             'PLANNEDSURGERYDATE',
             'ADMIT_DATE',
             'CLINICAL_DISCHARGE_DATE',	
-            'PHYSICAL_DISCHARGE_DATE'
+            'PHYSICAL_DISCHARGE_DATE',
+            'LINE_ORDER_DATE',
+            'DATE_RECORDED',
+            'START_DATE'
 
     ]
     for row in csv_reader:
