@@ -19,7 +19,7 @@ def mapping(df, column_mapping, nom_fichier, type_fichier,warnings_count, reject
     
     
     if len(column_mapping)==0:
-        create_excel(df,len(df),warnings_count,rejections_count)
+        create_excel(df,len(df),warnings_count,rejections_count,nom_fichier,type_fichier)
         df = pd.DataFrame()
         df.to_csv(sys.stdout, sep=',', index=False)
     else :
@@ -77,8 +77,6 @@ def mapping(df, column_mapping, nom_fichier, type_fichier,warnings_count, reject
             hopital_name = re.search(r'_(.*?)_', nom_fichier)
             if hopital_name is not None:
                 df.insert(1, 'HOSPITAL', hopital_name.group(1))
-
-            #TODO : BedNumber et RoomNumber c'est des colonnes qu'on doit en déduire
             
             
             # Écriture du fichier CSV résultant sur la sortie standard (stdout)
@@ -539,7 +537,7 @@ dict_theater ={
 }
 
 # Exécution de la fonction avec le dictionnaire de correspondances
-mapping(df, dict_theater, file_name, file_type,warnings_count, rejections_count)
+mapping(df, dict_pharmacy, file_name, file_type,warnings_count, rejections_count)
 
 
 

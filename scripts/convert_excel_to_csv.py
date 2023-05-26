@@ -6,17 +6,18 @@ import datetime
 import tempfile
 import openpyxl
 
+#TODO : voir cette histoire, j'arrive pas à le lire quand c'est avec HandleHttpRequest
 # Create a temporary file
-with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as temp:
+"""with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as temp:
     for line in sys.stdin.buffer:
         temp.write(line)
     temp_filename = temp.name
 
 # Now you can use pandas to read the file
-df = pd.read_excel(temp_filename, engine='openpyxl')
+df = pd.read_excel(temp_filename, engine='openpyxl')"""
 
-#input_excel_file = sys.argv[1]
-#df = pd.read_excel(input_excel_file, dtype=str)
+input_excel_file = sys.argv[1]
+df = pd.read_excel(input_excel_file, dtype=str)
 
 dic = {'January' : '01', 'February' :'02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
        'July': '07', 'August': '08', 'September': '09', 'October': '10', 'November': '11', 'December': '12'}

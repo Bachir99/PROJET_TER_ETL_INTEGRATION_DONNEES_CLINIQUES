@@ -11,21 +11,23 @@ from openpyxl.worksheet.dimensions import ColumnDimension
 from openpyxl.chart import BarChart, Reference
 import io 
 import sys
-#TODO : add the Cluster, Hospital sur le fichier excel
-def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
-    #TODO : add the signification of the other rules
+import re
+
+def create_excel(lines_df, initial_row_count, warnings_count, rejections_count, file_name,file_type):
     rules_and_significations = {
         "V-Today-1": "<= TODAY",
         "V-DateOfBirth-1": "not > 125 years ago",
+        "V-FormatDate-1":"Invalid date format. Must be YYYY-MM-DD HH: MM: SS",
         "V-DateofDeath": "Date must be greater than or equal to DateOfBirth",
         "V-NotNull-1": "<> NULL / blank (Rejet)",
         "V-NotNull-2": "<> NULL / blank (Avertissement)",
-        "V-length50": "Lenght =<50",
-        "V-length100": "Lenght =<100",
+        "V-length50": "Longueur ne doit pas dépasser 50 Charactères",
+        "V-length100": "Longueur ne doit pas dépasser 100 Charactères",
         "V-alpha-1": "Alpha Characters only",
         "V-alpha-2": "Alpha Characters only",
         "Deduplication" : "Deduplicated lines based on a unique value per line, or the whole line duplicated",
         "Absence MandatoryField" : "A mandatory field was missing",
+        "D-Age-1":"Default value applied for Age",
         "D-RoomNumber-1" : "RoomNumber is missing",
         "D-BedNumber-1" : "BedNumber is missing",
         "V-Num-1":"Value must be numeric only",
@@ -72,10 +74,35 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
 
     # Définir le tableau
     table = [
-        'Cluster:',
-        'Hopital:',
-        'Servicing department:'
+        'Cluster',
+        'Hopital',
+        'Servicing department'
     ]
+
+    regex_pattern = r"^([^_]+)"
+    match = re.match(regex_pattern, file_name)
+    if match:
+        cluster_name = match.group(1)
+    else:
+        cluster_name = ''
+
+    hospital_name = re.search(r'_(.*?)_', file_name)
+    if hospital_name:
+        hospital_name = hospital_name.group(1)
+    else:
+        hospital_name = ''
+
+    servicingDepartment = ''
+    if file_type == 'Service':
+        match = re.search(r'Serv\.([A-Za-z0-9.]+)_', file_name)
+        if match:
+            servicingDepartment = match.group(1)
+
+    table2 = [cluster_name, hospital_name, servicingDepartment]
+    for row in range(4, 7):
+        cell = worksheet.cell(row=row, column=4)
+        cell.value = table2[row - 4]
+
 
     # Écrire les valeurs dans les cellules appropriées
     for row in range(4, 7):
@@ -102,7 +129,7 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
 
     # Appliquer le remplissage et les bordures noires aux cellules B4:C6
     for row in range(4, 7):
-        for col in range(2, 4):
+        for col in range(2, 5):
             cell = worksheet.cell(row=row, column=col)
             cell.fill = fill
             cell.border = Border(left=Side(border_style='thin', color='000000'),
@@ -115,7 +142,7 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     alignment = Alignment(horizontal='center', vertical='center')
 
     for row in range(4, 7):
-        for col in range(2, 4):
+        for col in range(2, 5):
             cell = worksheet.cell(row=row, column=col)
             cell.alignment = alignment
 
@@ -223,10 +250,10 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
     warning_percentage = (total_warnings / initial_row_count) * 100
     rejection_percentage = (total_rejections / initial_row_count) * 100
     cell = worksheet.cell(row=15, column=7)
-    cell.value = str(int(rejection_percentage))+'%'
+    cell.value = str("{:.2f}".format(rejection_percentage))+'%'
     cell.alignment = alignment
     cell = worksheet.cell(row=16, column=7)
-    cell.value = str(int(warning_percentage))+'%'
+    cell.value = str("{:.2f}".format(warning_percentage))+'%'
     cell.alignment = alignment
 
     table = [
@@ -262,7 +289,7 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
                 worksheet.cell(row=row, column=6).value = valuee
                 worksheet.cell(row=row, column=6).alignment = alignment
                 worksheet.cell(row=row, column=7).value = str(
-                    int((valuee / initial_row_count) * 100))+'%'
+                    "{:.2f}".format((valuee / initial_row_count) * 100))+'%'
                 worksheet.cell(row=row, column=7).alignment = alignment
                 row += 1
                 for col in range(2, 8):
@@ -284,7 +311,7 @@ def create_excel(lines_df, initial_row_count, warnings_count, rejections_count):
                 worksheet.cell(row=row, column=6).value = valuee
                 worksheet.cell(row=row, column=6).alignment = alignment
                 worksheet.cell(row=row, column=7).value = str(
-                    int((valuee / initial_row_count) * 100))+'%'
+                    "{:.2f}".format((valuee / initial_row_count) * 100))+'%'
                 worksheet.cell(row=row, column=7).alignment = alignment
                 row += 1
                 for col in range(2, 8):

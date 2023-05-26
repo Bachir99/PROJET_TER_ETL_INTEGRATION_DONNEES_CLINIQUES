@@ -30,7 +30,6 @@ if __name__ == '__main__':
 
     header = next(csv_reader)
     csv_writer.writerow(header)  # Write the header row only once
-    #TODO : VOIR LES VRAIES COLONNES DE BILEL ET LES RAJOUTER
     columns= [
             'BIRTHDATE',
             'TIME_ARRIVED',
@@ -45,10 +44,9 @@ if __name__ == '__main__':
             'PRETRIAGETIME',
             'TRIAGESTARTTIME',
             'TRIAGEENDTIME',
-            'PROCEDUREDATETIME',
             'ORDERDATETIME',
             'RADIOLOGISTREPORTDATETIME',
-            'RADIOLOGISTFINALISATIONDATETIME',
+            'RADIOLOGISTFINALISATIONDATE',
             'COLLECTIONTIME',
             'SAMPLERECEIVEDTIME',
             'SIGNATUREDATETIME',
@@ -66,9 +64,40 @@ if __name__ == '__main__':
             'PHYSICAL_DISCHARGE_DATE',
             'LINE_ORDER_DATE',
             'DATE_RECORDED',
-            'START_DATE'
-
+            'START_DATE',
+            'DATE_REGISTERED',
+            'ENCOUNTER_START',
+            'ENCOUNTER_END',
+            'OPERATION_STARTED',
+            'OPERATION_END',
+            'END_DATE',
+            'StartDateTime',
+            'EndDateTime',
+            'LastUpdateDateTime',
+            'RadiologistReportDateTime',
+            'RadiologistFinalisationDate',
+            'CollectionTime',
+            'SampleReceivedTime',
+            'SignatureDateTime',
+            'StartDispenseTime',
+            'PrescriptionValidationTime',
+            'PreOpStart',
+            'PreOpEnd',
+            'AnaethesiaStart',
+            'AnaethesiaEnd',
+            'RecoveryStart',
+            'RecoveryEnd',
+            'CancellationDate',
+            'ProcedureDateTime',
+            'DiagnosisDateTime',
+            'TriageStartTime',
+            'TriageEndTime',
+            'STARTDATETIME',
+            'LASTUPDATEDATETIME',
     ]
+    
+
+
     for row in csv_reader:
         converted_row = []
         for i, value in enumerate(row):

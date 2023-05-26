@@ -55,18 +55,20 @@ def V_date_of_birth1(df, column_name,reject_list,rejections_count):
 def V_dateOfDeath(df, column_name,reject_list,rejections_count):
     rule_name = 'V-DateofDeath'
     def check_dates(row):
-        dob = pd.to_datetime(row['DATEOFBIRTH'], errors='coerce')
-        dod = pd.to_datetime(row[column_name], errors='coerce')
-        
-        if dod is not pd.NaT and dob is not pd.NaT and dod < dob:
-            row_copy = row.copy()
-            row_copy['Rejet'] = rule_name
-            reject_list.append(row_copy)
-            rejections_count[rule_name][column_name] += 1
-            return False
+        if 'DATAOFBIRTH' in df.columns :
+            dob = pd.to_datetime(row['DATEOFBIRTH'], errors='coerce')
+            dod = pd.to_datetime(row[column_name], errors='coerce')
+            
+            if dod is not pd.NaT and dob is not pd.NaT and dod < dob:
+                row_copy = row.copy()
+                row_copy['Rejet'] = rule_name
+                reject_list.append(row_copy)
+                rejections_count[rule_name][column_name] += 1
+                return False
 
-        return True
-
+            return True
+        else :
+            return True
     df = df[df.apply(check_dates, axis=1)]
 
     return df
@@ -282,7 +284,7 @@ def V_GTE0_1(row, column_name, reject_list, rejections_count):
     return True
 
 ################################################ 
-
+#On est censés avoir Age? ou on le construit nous même par cette méthode??
 def D_Age_1(row,column_name_age, warnings_list, warnings_count):
     rule_name = 'D-Age-1'
     
@@ -309,7 +311,7 @@ def D_Null_1(row, column_name):
     return row[column_name]
 
 
-#TROP BIZARRE CETTE REGLE FAUT DEMANDER A BILEL
+#TROP BIZARRE CETTE REGLE FAUT DEMANDER A MR BILEL
 def D_Duration_1(row, column_name_duration, warnings_list, warnings_count):
     rule_name = 'D-Duration-1'
     if pd.notnull(row['ENDDATETIME']):
@@ -363,15 +365,15 @@ def recuperate(file_path):
 
 
 def main():
-    
+    #TODO list :
     #DONE : Deduplicate à revoir, pour Patient c'est le PATIENTID le critère, mais les autres faut que toute la ligne se repète pour l'enlever
-    #TODO : tout ce qui est date on leur applique toutes les règles des dates malgré que c'est pas mentionné, psq les dates c'est considéré comme mapping !
+    #DONE : tout ce qui est date on leur applique toutes les règles des dates malgré que c'est pas mentionné, psq les dates c'est considéré comme mapping !
     #DONE : Après avoir appliqué T-PatientNumber-1 faut supprimer la colonne Hospital dans le fichier Patient
     #DONE : Transfer, Diagnosis, Procedure dans EncounterNumber le EncounterType dans T-EncounterNumber-1 est toujours IP
     #DONE : Après avoir appliqué EncounterNumber dans SERVICE faut supprimer la colonne EncounterType
-    #TODO : Si on trouve pas un non MandatoryField c’est pas grave
-    #TODO : Si on trouve une ligne qui contient une valeur NULL dans un mandatoryField on enlève la ligne (rejet) ====> (V-Not-Null-1) et ça dépend du fichier aussi
-    #TODO : Sinon si ça l’est pas, on peut laisser NULL MAIS on fait un avertissement dans le rapport de validation que pour les DATES ==> (V-Not-Null-2), les autres on fait rien
+    #DONE : Si on trouve pas un non MandatoryField c’est pas grave
+    #DONE : Si on trouve une ligne qui contient une valeur NULL dans un mandatoryField on enlève la ligne (rejet) ====> (V-Not-Null-1) et ça dépend du fichier aussi
+    #DONE : Sinon si ça l’est pas, on peut laisser NULL MAIS on fait un avertissement dans le rapport de validation que pour les DATES ==> (V-Not-Null-2), les autres on fait rien
     #DONE : dans Service :	EncounterNumber	[Hospital]+"-"+[EncounterType]+"-"+[EncounterNumber] (si on trouve pas le EncounterType on met IP)
     #DONE : D-DateCreation	Default	Date et heure quand le Output file a été crée, on l’applique sur LastUpdateDateTime
     #DONE : Coder D-Sequence-1
@@ -381,28 +383,77 @@ def main():
     # Récupération du nom du fichier d'entrée
     file_type = recuperate(file_type_path)
     
+    file_name_path = "./file_name.txt"
+    # Récupération du nom du fichier d'entrée
+    file_name = recuperate(file_name_path)    
+    
     #TODO : finir ce dictionnaire
-    rules={"DATEOFBIRTH": ["V_today1", "V_dateOfBirth1",], 
-           "DATEOFDEATH": ["V_today1", "V_dateOfBirth1","V_dateOfDeath", "D_patientDeceased"], 
-           "HOSPITAL": ["V_NotNull1"],
-           "PATIENTNUMBER" : ["V_length50", "T_PatientNumber_1"],
-           "FATHERSNAME": ["V_length100", "V_alpha2"], 
-           "FATHERSPRENAME": ["V_length100", "V_alpha2"],
-           "PLACEOFBIRTH": ["V_length100"],
-           "PATIENTDECEASED" : ["D_patientDeceased"],
-           "TITLE" :  ["V_alpha2", "V_dateOfBirth1","V_today1"],
-           "ENCOUNTERNUMBER" :  ["V_NotNull1", "T_EncounterNumber_1"],
-           "BEDNUMBER" :  ["T_BedNumber_1", "D_BedNumber_1"],
-           "AGE" :  ["D_Age_1"],
-           "ROOMNUMBER" : ["T_RoomNumber_1", "D_RoomNumber_1"],
-           "DIAGNOSISCODE" : ["V_NotNull1"],
-           "DIAGNOSISVERSION" : ["V_NotNull1"],
-           "SEQUENCE" : ["V_NotNull1","V_Num_1", "T_RoundInteger_1"],
-           "PROCEDUREVERSION" :  ["V_NotNull1"],
-           "QUANTITY" : ["V_NotNull1", "V_Quantity_1" , "T_RoundNum92_1"],
-           "DURATION" : ["V_GTE0_1","D_Duration_1",  "T_RoundNum92_1"],
-           "SERVICEDESCRIPTION" : ["V_length100"],
-           "EXTRA:DIAGNOSISDATETIME":["D_Sequence_1"]}
+    rules={ #DATES
+            "DATEOFBIRTH": ["V_today1", "V_dateOfBirth1","V_NotNull2"], 
+            "DATEOFDEATH": ["V_today1", "V_dateOfBirth1","V_dateOfDeath", "D_patientDeceased","V_NotNull2"],
+            "EXTRA:DATEOFDEATH": ["V_today1", "V_dateOfBirth1","V_dateOfDeath", "D_patientDeceased","V_NotNull2"],
+            "STARTDATETIME": ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull1"],
+            "ENDDATETIME": ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull1"],
+            "PROCEDUREDATETIME":["V_today1", "V_dateOfBirth1","V_dateOfDeath","D_Sequence_1","V_NotNull2"],
+            "EXTRA:PRETRIAGETIME":["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:TRIAGESTARTTIME":["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:TRIAGEENDTIME":["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:CANCELLATIONDATE":["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:DIAGNOSISDATETIME":["V_today1", "V_dateOfBirth1","V_dateOfDeath","D_Sequence_1","V_NotNull2"],
+            "ORDERDATETIME" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:STARTDATETREATMENTPLAN" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:ENDDATETREATMENTPLAN" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:RADIOLOGISTREPORTDATETIME" :["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:RADIOLOGISTFINALISATIONDATE" :["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:COLLECTIONTIME" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:SAMPLERECEIVEDTIME" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:SIGNATUREDATETIME" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:STARTDISPENSETIME" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:PRESCRIPTIONVALIDATIONTIME" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:PREOPSTART": ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:PREOPEND" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:ANAETHESIASTART" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:ANAETHESIAEND" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:RECOVERYSTART" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:RECOVERYEND" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            "EXTRA:PLANNEDSURGERYDATE" : ["V_today1", "V_dateOfBirth1","V_dateOfDeath","V_NotNull2"],
+            #RESTE
+            "HOSPITAL": ["V_NotNull1"],
+            "PATIENTNUMBER" : ["V_length50", "T_PatientNumber_1"],
+            "FATHERSNAME": ["V_length100", "V_alpha2"], 
+            "FATHERSPRENAME": ["V_length100", "V_alpha2"],
+            "PLACEOFBIRTH": ["V_length100"],
+            "PATIENTDECEASED" : ["D_patientDeceased"],
+            "TITLE" :  ["V_alpha2", "V_dateOfBirth1","V_today1"],
+            "ENCOUNTERNUMBER" :  ["V_NotNull1", "T_EncounterNumber_1"],
+            "BEDNUMBER" :  ["T_BedNumber_1", "D_BedNumber_1"],
+            "AGE" :  ["D_Age_1"],
+            "ROOMNUMBER" : ["T_RoomNumber_1", "D_RoomNumber_1"],
+            "DIAGNOSISCODE" : ["V_NotNull1"],
+            "DIAGNOSISVERSION" : ["V_NotNull1"],
+            "SEQUENCE" : ["V_NotNull1","V_Num_1", "T_RoundInteger_1"],
+            "PROCEDUREVERSION" :  ["V_NotNull1"],
+            "QUANTITY" : ["V_NotNull1", "V_Quantity_1" , "T_RoundNum92_1"],
+            "DURATION" : ["V_GTE0_1","D_Duration_1",  "T_RoundNum92_1"],
+            "SERVICEDESCRIPTION" : ["V_length100"],
+            }
+
+    # Dictionnaire de champs obligatoires pour chaque type de fichier
+    mandatory_fields = {
+        "Patient": ["PATIENTNUMBER"],
+        "Encounter": ["PATIENTNUMBER", "HOSPITAL", "STARTDATETIME", "ENDDATETIME", "ENCOUNTERNUMBER"],
+        "Diagnosis": ["ENCOUNTERNUMBER", "DIAGNOSISCODE", "DIAGNOSISVERSION","SEQUENCE"],
+        "Procedure": ["ENCOUNTERNUMBER", "PROCEDUREVERSION", "PROCEDURECODE"],
+        "Transfer": ["PATIENTNUMBER","ENCOUNTERNUMBER", "WARD", "STARTDATETIME"],
+        "Service": ["PATIENTNUMBER","STARTDATETIME", "QUANTITY", "SERVICECODE"]
+    }
+
+    # Ajouter la règle à chaque champ obligatoire
+    for field in mandatory_fields[file_type]:
+        if field in rules:  # Si le champ existe dans le dictionnaire de règles
+            rules[field].append("V_NotNull1")  # Ajouter la règle V_Null_1
+            
+
 
     df = pd.read_csv(sys.stdin, dtype=str)
     initial_row_count = len(df)
@@ -537,7 +588,7 @@ def main():
     lines_df = pd.concat([lines_df, duplicates_df, warnings_df, rejections_df], ignore_index=True)
 
 
-    create_excel(lines_df,initial_row_count,warnings_count,rejections_count)
+    create_excel(lines_df,initial_row_count,warnings_count,rejections_count, file_name, file_type)
 
 
     # Supprimer les colonnes qui contiennent uniquement des valeurs NULL pour toutes les lignes
